@@ -1,0 +1,1262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Interactive OSINT Challenge - Test your open source intelligence skills">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https:;">
+<title>OSINT Challenge</title>
+<style>
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    color: #eee;
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 1rem;
+    line-height: 1.6;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-top: 3rem; /* Reduced padding since hint counter is moved */
+  }
+  
+  .hint-counter {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #b0d351;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    margin: 1.5rem auto 2rem auto;
+    max-width: fit-content;
+    white-space: nowrap;
+  }
+  
+  .hint-counter .shame-text {
+    color: #ffecb3;
+  }
+  
+  .briefing-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+  }
+  
+  .briefing-button {
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+  }
+  
+  .briefing-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+  
+  .briefing-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .briefing-content {
+    color: #eee;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+  
+  .briefing-title {
+    color: #b0d351;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .briefing-note {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 600;
+  }
+  
+  .briefing-signature {
+    text-align: right;
+    color: #b0d351;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    font-style: italic;
+  }
+  
+  .briefing-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.3s ease;
+  }
+  
+  .briefing-close:hover {
+    color: #b0d351;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    color: #999;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .progress-container {
+    background: #1e1e1e;
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  
+  .progress-bar {
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-fill {
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+  
+  .progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  
+  ul.task-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  li.task {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 1px solid #333;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  li.task::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  li.task:hover {
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border-color: #b0d351;
+    transform: translateY(-2px);
+  }
+  
+  li.task:hover::before {
+    transform: scaleX(1);
+  }
+  
+  li.task:focus-within {
+    outline: 2px solid #b0d351;
+    outline-offset: 2px;
+  }
+  
+  .task-title {
+    font-weight: 700;
+    font-size: 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .task-badge {
+    background: #333;
+    color: #999;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .task-badge.completed {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: white;
+  }
+  
+  .task-badge.locked {
+    background: #444;
+    color: #666;
+  }
+  
+  .task-content {
+    margin-top: 1.5rem;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .task-content p.question {
+    margin: 1rem 0 0.5rem;
+    font-weight: 600;
+    color: #f0f0f0;
+    padding: 0.5rem;
+    background: rgba(176, 211, 81, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #b0d351;
+  }
+  
+  .task-content input[type="text"] {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 2px solid #333;
+    outline: none;
+    font-size: 1rem;
+    background: #2a2a2a;
+    color: #eee;
+    transition: border-color 0.3s ease;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-content input[type="text"]:focus {
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+  
+  .task-content button.submit-btn {
+    margin-top: 1rem;
+    background: linear-gradient(45deg, #b0d351, #6a7740);
+    border: none;
+    padding: 0.8rem 2rem;
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .task-content button.submit-btn:hover {
+    background: linear-gradient(45deg, #6a7740, #5a6535);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+  
+  .task-content button.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .task-content button.submit-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .feedback {
+    margin-top: 1rem;
+    font-weight: 700;
+    min-height: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .feedback.success {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4caf50;
+    color: #81c784;
+  }
+  
+  .feedback.error {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #f44336;
+    color: #ef5350;
+  }
+  
+  .feedback.info {
+    background: rgba(176, 211, 81, 0.2);
+    border: 1px solid #b0d351;
+    color: #c4de6b;
+  }
+  
+  .task.open > .task-title .arrow {
+    transform: rotate(180deg);
+  }
+  
+  .task .arrow {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    color: #b0d351;
+  }
+  
+  canvas#fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  
+  li.task.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+  }
+  
+  li.task.bonus {
+    background: linear-gradient(135deg, #2a1810 0%, #3d2817 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  
+  li.task.bonus::before {
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+  }
+  
+  li.task.bonus:hover {
+    background: linear-gradient(135deg, #3d2817 0%, #4a2f1c 100%);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    transform: translateY(-3px);
+  }
+  
+  li.task.bonus .task-title {
+    color: #ffd700;
+  }
+  
+  li.task.bonus .task-badge.completed {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+  }
+  
+  li.task.bonus .task-badge:not(.completed) {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid #ffd700;
+    color: #ffd700;
+  }
+  
+  .hint-btn {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: all 0.3s ease;
+  }
+  
+  .hint-btn:hover {
+    background: rgba(255, 193, 7, 0.3);
+  }
+  
+  .hint-text {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    font-style: italic;
+    display: none;
+  }
+  
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding: 0.5rem;
+      margin: 1rem auto;
+    }
+    
+    .header {
+      padding-top: 3rem; /* Keep consistent padding */
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .task-title {
+      font-size: 1.2rem;
+    }
+    
+    .task-content input[type="text"] {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    li.task {
+      padding: 1rem;
+    }
+    
+    .briefing-container {
+      position: static;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    
+    .hint-counter {
+      margin: 1rem auto 1.5rem auto;
+    }
+    
+    .briefing-dropdown {
+      position: static;
+      max-width: none;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+  }
+  
+  /* Additional media query for very narrow screens */
+  @media (max-width: 480px) {
+    .header {
+      padding-top: 2.5rem; /* Reduced padding for small screens */
+    }
+    
+    .hint-counter {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      margin: 1rem auto 1rem auto;
+    }
+    
+    .briefing-button {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.8rem;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="briefing-container">
+    <button class="briefing-button" id="briefingBtn">📋Briefing</button>
+    <div class="briefing-dropdown" id="briefingDropdown">
+      <button class="briefing-close" id="briefingClose">✕</button>
+      <div class="briefing-title">Briefing</div>
+      <div class="briefing-content">
+        <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. Within your team it is highly likely if you smash your heads together that you will complete all 5 Tasks at hand.</p>
+        
+        <p>The challenge at hand will have you investigating a malicious threat actor that has compromised somebody's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly. I highly recommend that you dig deeper than you think throughout this.</p>
+        
+        <div class="briefing-note">
+          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to account holder and attempting brute-force attacks. Also you get a NEW hint everytime you get a wrong answer.
+
+          My final thing to note, testing this site in general, including checking its source code is deemed out of scope for this challenge. We want to encourage real-world OSINT skills, not source-diving
+        </div>
+        
+        <p>If you have any questions, please shout me over and i may offer a hint. And when you complete ALL the tasks shout me over to claim your prize...Good Luck</p>
+        
+        <div class="briefing-signature">- Lewis G</div>
+      </div>
+    </div>
+  </div>
+  
+  <h1>The OSINT Gauntlet</h1>
+  <p class="subtitle">Test your Open Source Intelligence skills</p>
+  
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">0 of 6 tasks completed</div>
+  </div>
+</div>
+
+<div class="hint-counter" id="hintCounter">
+  Hint <span class="shame-text">Counter of Shame</span>: <span id="hintCount">0</span>
+</div>
+
+<ul class="task-list" id="taskList"></ul>
+<canvas id="fireworks"></canvas>
+
+<script>
+// Configuration
+const CONFIG = {
+  HASH_ROUNDS: 1000,
+  FIREWORKS_PARTICLES: 120,
+  ANIMATION_DURATION: 5000,
+  STORAGE_KEY: 'osint_challenge_progress'
+};
+
+// Enhanced SHA-256 hashing with salt
+async function sha256(str, salt = 'osint2024') {
+  try {
+    const encoder = new TextEncoder();
+    const data = encoder.encode((str.toLowerCase().trim() + salt));
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch (error) {
+    console.error('Hashing failed:', error);
+    return null;
+  }
+}
+
+// Input sanitization
+function sanitizeInput(input) {
+  return input.trim().replace(/[<>]/g, '');
+}
+
+// Enhanced tasks configuration with hints
+const tasks = [
+  {
+    id: 'task1',
+    title: 'Task 1: The Tip Off',
+    description: 'Analyze the provided image to identify the attacker',
+    questions: [
+      'What username does the attacker go by? (Click <a href="images/pwnedletter.svg" data-original-path="/Users/beansbently/Desktop/Screenshots/pwned_note.png" data-uploaded-by="beansbently" target="_blank" rel="noopener noreferrer">here</a> to view the tip-off image.)'
+    ],
+    answers: ['beansbently'],
+    keys: 1,
+    hints: [
+      'No hints on Task 1 nice try lol',
+      'Nice try, still no hints on Task 1...Unless you get it wrong again',
+      'I lied no Hints :)'
+      
+    ]
+  },
+  {
+    id: 'task2',
+    title: 'Task 2: Recon',
+    description: 'Gather intelligence on the target',
+    questions: [
+      'What is the full email address of the attacker?',
+      'What is the attacker\'s full real name?'
+    ],
+    answers: ['beansbently1337@gmail.com', 'elliot alderson'],
+    keys: 2,
+    hints: [
+      'Try searching the username on different platforms',
+      'Look for profile information and contact details',
+      'Social media profiles often contain real names'
+    ]
+  },
+  {
+    id: 'task3',
+    title: 'Task 3: Cryptic Crypto',
+    description: 'Investigate cryptocurrency activities',
+    questions: [
+      'What Cryptocurrency does the attacker own a wallet for?',
+      'What is the attacker\'s cryptocurrency wallet address?',
+      'What mining pool did the attacker receive ETH from on January 23rd, 2021?',
+      'What other cryptocurrency did the attacker exchange with?'
+    ],
+    answers: ['eth', '0xa102397dbeebefd8cd2f73a89122fcdb53abb6ef', 'ethermine', 'tether'],
+    keys: 4,
+    hints: [
+      'Look for cryptocurrency addresses in social media',
+      'Use blockchain explorers to trace transactions',
+      'Mining pools often have identifiable signatures'
+    ]
+  },
+  {
+    id: 'task4',
+    title: 'Task 4: Social Scrape',
+    description: 'Find current social media presence',
+    questions: [
+      'What is the attacker\'s current Twitter (X) handle?'
+    ],
+    answers: ['beansbentlyel'],
+    keys: 1,
+    hints: [
+      'Try variations of known usernames',
+      'Look for recent account activity',
+      'Check profile links and connections'
+    ]
+  },
+  {
+    id: 'task5',
+    title: 'Task 5: Air Miles',
+    description: 'Track travel movements',
+    questions: [
+      'What airport is closest to the location the attacker shared a photo from prior to getting on their flight? (Airport code)',
+      'What airport is the attacker having a layover in? (Airport code)'
+    ],
+    answers: ['dca', 'dxb'],
+    keys: 2,
+    hints: [
+      'Look for geotagged photos or location posts',
+      'Use reverse image search for location clues',
+      'Flight tracking websites can help identify routes'
+    ]
+  },
+  {
+    id: 'task6',
+    title: 'Task 6: Bonus Round',
+    description: 'Final challenge - Good Luck',
+    questions: [
+      'What is the mystery flag?',
+      'What building does the attacker live in?'
+    ],
+    answers: ['reconsile-object-heir-coal', 'stormveil castle'],
+    keys: 2,
+    hiddenUntil: 'task5',
+    hints: [
+      'Delve Deeper into places you have already been',
+      'you need to DIG deeper',
+      'Sometimes the answer is hidden in plain sight'
+    ]
+  }
+];
+
+// Briefing functionality
+document.addEventListener('DOMContentLoaded', () => {
+  const briefingBtn = document.getElementById('briefingBtn');
+  const briefingDropdown = document.getElementById('briefingDropdown');
+  const briefingClose = document.getElementById('briefingClose');
+
+  function toggleBriefing() {
+    const isVisible = briefingDropdown.style.display === 'block';
+    briefingDropdown.style.display = isVisible ? 'none' : 'block';
+  }
+
+  function closeBriefing() {
+    briefingDropdown.style.display = 'none';
+  }
+
+  briefingBtn.addEventListener('click', toggleBriefing);
+  briefingClose.addEventListener('click', closeBriefing);
+
+  // Close briefing when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!briefingBtn.contains(e.target) && !briefingDropdown.contains(e.target)) {
+      closeBriefing();
+    }
+  });
+
+  // Close briefing on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeBriefing();
+    }
+  });
+
+  // Initialize the main challenge
+  new OSINTChallenge();
+});
+
+// Game state management
+class OSINTChallenge {
+  constructor() {
+    this.completedTasks = this.loadProgress();
+    this.attemptCounts = {};
+    this.hintClickCount = this.loadHintCount();
+    this.taskListEl = document.getElementById('taskList');
+    this.hintCountEl = document.getElementById('hintCount');
+    this.init();
+  }
+
+  init() {
+    this.checkIntegrity();
+    this.createTasksUI();
+    this.updateProgress();
+    this.updateHintCounter();
+  }
+
+  checkIntegrity() {
+    if (tasks.length !== 6) {
+      console.warn('Task integrity check failed');
+    }
+  }
+
+  loadProgress() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.error('Failed to load progress:', e);
+      return {};
+    }
+  }
+
+  loadHintCount() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY + '_hints');
+      return saved ? parseInt(saved) : 0;
+    } catch (e) {
+      console.error('Failed to load hint count:', e);
+      return 0;
+    }
+  }
+
+  saveProgress() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.completedTasks));
+    } catch (e) {
+      console.error('Failed to save progress:', e);
+    }
+  }
+
+  saveHintCount() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY + '_hints', this.hintClickCount.toString());
+    } catch (e) {
+      console.error('Failed to save hint count:', e);
+    }
+  }
+
+  updateHintCounter() {
+    if (this.hintCountEl) {
+      this.hintCountEl.textContent = this.hintClickCount;
+    }
+  }
+
+  updateProgress() {
+    const completed = Object.keys(this.completedTasks).length;
+    const isTask6Unlocked = this.completedTasks['task5']; // Task 6 unlocks after Task 5
+    const visibleTotal = isTask6Unlocked ? 6 : 5;
+    const percentage = (completed / visibleTotal) * 100;
+    
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${completed} of ${visibleTotal} tasks completed`;
+    
+    // Special handling when Task 6 is unlocked
+    if (isTask6Unlocked && !document.querySelector('[data-task-id="task6"]').style.display !== 'none') {
+      progressText.textContent += ' 🎁 Bonus task unlocked!';
+    }
+  }
+
+  createTasksUI() {
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.classList.add('task');
+      li.dataset.taskId = task.id;
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+
+      // Check if task should be hidden
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        li.style.display = 'none';
+      }
+
+      // Check if task is completed
+      if (this.completedTasks[task.id]) {
+        li.classList.add('completed');
+      }
+
+      // Title section
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'task-title';
+      
+      const titleText = document.createElement('span');
+      titleText.textContent = task.title;
+      
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'task-status';
+      
+      const badge = document.createElement('span');
+      badge.className = 'task-badge';
+      
+      if (this.completedTasks[task.id]) {
+        badge.textContent = 'Completed';
+        badge.classList.add('completed');
+      } else if (index > 0 && !this.completedTasks[tasks[index - 1]?.id]) {
+        badge.textContent = 'Locked';
+        badge.classList.add('locked');
+        li.classList.add('locked');
+      } else {
+        badge.textContent = 'Available';
+      }
+      
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.innerHTML = '▼';
+      
+      statusDiv.appendChild(badge);
+      statusDiv.appendChild(arrow);
+      titleDiv.appendChild(titleText);
+      titleDiv.appendChild(statusDiv);
+      li.appendChild(titleDiv);
+
+      // Content section
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'task-content';
+
+      // Task description
+      if (task.description) {
+        const descP = document.createElement('p');
+        descP.style.fontStyle = 'italic';
+        descP.style.color = '#999';
+        descP.style.marginBottom = '1rem';
+        descP.textContent = task.description;
+        contentDiv.appendChild(descP);
+      }
+
+      // Questions and inputs
+      task.questions.forEach((q, i) => {
+        const questionP = document.createElement('p');
+        questionP.className = 'question';
+        questionP.innerHTML = q;
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.autocomplete = 'off';
+        input.id = `${task.id}_q${i}`;
+        input.setAttribute('aria-label', `Answer for question ${i + 1}`);
+        
+        contentDiv.appendChild(questionP);
+        contentDiv.appendChild(input);
+      });
+
+      // Buttons section
+      const buttonsDiv = document.createElement('div');
+      buttonsDiv.style.display = 'flex';
+      buttonsDiv.style.gap = '1rem';
+      buttonsDiv.style.marginTop = '1rem';
+
+      // Submit button
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Submit';
+      submitBtn.className = 'submit-btn';
+      submitBtn.setAttribute('aria-label', 'Submit answers');
+
+      // Hint button
+      const hintBtn = document.createElement('button');
+      hintBtn.textContent = 'Show Hint';
+      hintBtn.className = 'hint-btn';
+      hintBtn.setAttribute('aria-label', 'Show hint');
+
+      buttonsDiv.appendChild(submitBtn);
+      buttonsDiv.appendChild(hintBtn);
+      contentDiv.appendChild(buttonsDiv);
+
+      // Hint text
+      const hintText = document.createElement('div');
+      hintText.className = 'hint-text';
+      contentDiv.appendChild(hintText);
+
+      // Feedback
+      const feedbackP = document.createElement('p');
+      feedbackP.className = 'feedback';
+      feedbackP.setAttribute('aria-live', 'polite');
+      contentDiv.appendChild(feedbackP);
+
+      li.appendChild(contentDiv);
+
+      // Event handlers
+      this.setupEventHandlers(li, task, index, submitBtn, hintBtn, hintText, feedbackP);
+
+      this.taskListEl.appendChild(li);
+    });
+  }
+
+  setupEventHandlers(li, task, index, submitBtn, hintBtn, hintText, feedbackP) {
+    const titleDiv = li.querySelector('.task-title');
+    const contentDiv = li.querySelector('.task-content');
+
+    // Toggle task content
+    const toggleTask = () => {
+      if (this.isTaskLocked(task, index)) {
+        this.showFeedback(feedbackP, 'You need to complete the previous task first!', 'error');
+        return;
+      }
+
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        this.showFeedback(feedbackP, 'This task is not yet available!', 'error');
+        return;
+      }
+
+      const isOpen = li.classList.contains('open');
+      
+      // Close all other tasks
+      document.querySelectorAll('li.task.open').forEach(openLi => {
+        if (openLi !== li) {
+          openLi.classList.remove('open');
+          openLi.querySelector('.task-content').style.display = 'none';
+        }
+      });
+
+      if (isOpen) {
+        li.classList.remove('open');
+        contentDiv.style.display = 'none';
+      } else {
+        li.classList.add('open');
+        contentDiv.style.display = 'block';
+        contentDiv.querySelector('input')?.focus();
+      }
+    };
+
+    titleDiv.addEventListener('click', toggleTask);
+    titleDiv.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTask();
+      }
+    });
+
+    // Prevent content clicks from closing
+    contentDiv.addEventListener('click', e => e.stopPropagation());
+
+    // Submit handler
+    submitBtn.addEventListener('click', () => this.handleSubmit(task, feedbackP, submitBtn));
+
+    // Hint handler
+    hintBtn.addEventListener('click', () => this.showHint(task, hintText, hintBtn));
+
+    // Enter key on inputs
+    contentDiv.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.handleSubmit(task, feedbackP, submitBtn);
+        }
+      });
+    });
+  }
+
+  isTaskLocked(task, index) {
+    return index > 0 && !this.completedTasks[tasks[index - 1]?.id];
+  }
+
+  async handleSubmit(task, feedbackP, submitBtn) {
+    const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
+    const answers = inputs.map(inp => sanitizeInput(inp.value));
+
+    if (answers.some(answer => !answer)) {
+      this.showFeedback(feedbackP, 'Please fill in all fields.', 'error');
+      return;
+    }
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = '';
+
+    try {
+      const isCorrect = await this.validateAnswers(task, answers);
+      
+      if (isCorrect) {
+        if (this.completedTasks[task.id]) {
+          this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
+        } else {
+          this.completedTasks[task.id] = {
+            completed: true,
+            timestamp: new Date().toISOString(),
+            attempts: (this.attemptCounts[task.id] || 0) + 1
+          };
+          this.saveProgress();
+          this.showFeedback(feedbackP, 'Correct! Task completed! 🎉', 'success');
+          this.launchFireworks();
+          this.updateTaskStatus(task.id);
+          this.updateProgress();
+          this.unlockNextTask(task);
+        }
+      } else {
+        this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
+        this.showFeedback(feedbackP, `Incorrect. Attempt ${this.attemptCounts[task.id]}. Try again!`, 'error');
+      }
+    } catch (error) {
+      this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
+      console.error('Validation error:', error);
+    } finally {
+      // Reset button state
+      setTimeout(() => {
+        submitBtn.disabled = false;
+        submitBtn.classList.remove('loading');
+        submitBtn.textContent = 'Submit';
+      }, 1000);
+    }
+  }
+
+  async validateAnswers(task, userAnswers) {
+    if (userAnswers.length !== task.answers.length) return false;
+
+    for (let i = 0; i < userAnswers.length; i++) {
+      const userHash = await sha256(userAnswers[i]);
+      const correctHash = await sha256(task.answers[i]);
+      if (userHash !== correctHash) return false;
+    }
+    return true;
+  }
+
+  showFeedback(feedbackEl, message, type) {
+    feedbackEl.textContent = message;
+    feedbackEl.className = `feedback ${type}`;
+  }
+
+  showHint(task, hintText, hintBtn) {
+    if (!task.hints) return;
+    
+    const attemptCount = this.attemptCounts[task.id] || 0;
+    const hintIndex = Math.min(attemptCount, task.hints.length - 1);
+    
+    if (hintText.style.display === 'block') {
+      hintText.style.display = 'none';
+      hintBtn.textContent = 'Show Hint';
+    } else {
+      // Increment hint counter when showing a hint
+      this.hintClickCount++;
+      this.saveHintCount();
+      this.updateHintCounter();
+      
+      hintText.textContent = task.hints[hintIndex];
+      hintText.style.display = 'block';
+      hintBtn.textContent = 'Hide Hint';
+    }
+  }
+
+  updateTaskStatus(taskId) {
+    const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (taskEl) {
+      taskEl.classList.add('completed');
+      const badge = taskEl.querySelector('.task-badge');
+      badge.textContent = 'Completed';
+      badge.classList.add('completed');
+    }
+  }
+
+  unlockNextTask(currentTask) {
+    const currentIndex = tasks.findIndex(t => t.id === currentTask.id);
+    if (currentIndex < tasks.length - 1) {
+      const nextTask = tasks[currentIndex + 1];
+      const nextTaskEl = document.querySelector(`[data-task-id="${nextTask.id}"]`);
+      if (nextTaskEl) {
+        nextTaskEl.style.display = 'list-item';
+        nextTaskEl.classList.remove('locked');
+        const badge = nextTaskEl.querySelector('.task-badge');
+        badge.textContent = 'Available';
+        badge.classList.remove('locked');
+      }
+    }
+
+    // Check for hidden tasks
+    tasks.forEach(task => {
+      if (task.hiddenUntil === currentTask.id) {
+        const hiddenTaskEl = document.querySelector(`[data-task-id="${task.id}"]`);
+        if (hiddenTaskEl) {
+          hiddenTaskEl.style.display = 'list-item';
+        }
+      }
+    });
+  }
+
+  launchFireworks() {
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: CONFIG.FIREWORKS_PARTICLES }, () => ({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+      radius: Math.random() * 4 + 1,
+      color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+      angle: Math.random() * 2 * Math.PI,
+      speed: Math.random() * 8 + 3,
+      alpha: 1,
+      decay: 0.015 + Math.random() * 0.02,
+      gravity: 0.1
+    }));
+
+    function animate() {
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle, index) => {
+        particle.x += Math.cos(particle.angle) * particle.speed;
+        particle.y += Math.sin(particle.angle) * particle.speed + particle.gravity;
+        particle.speed *= 0.99;
+        particle.alpha -= particle.decay;
+        particle.gravity += 0.02;
+
+        if (particle.alpha <= 0) {
+          particles.splice(index, 1);
+          return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = particle.color;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      if (particles.length > 0) {
+        requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    animate();
+    
+    // Hide fireworks after animation duration
+    setTimeout(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, CONFIG.ANIMATION_DURATION);
+  }
+}
+
+// Handle window resize for fireworks canvas
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('fireworks');
+  if (canvas) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+});
+
+// Keyboard navigation improvements
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    // Close all open tasks
+    document.querySelectorAll('li.task.open').forEach(li => {
+      li.classList.remove('open');
+      li.querySelector('.task-content').style.display = 'none';
+    });
+  }
+});
+
+// Anti-tampering (basic)
+setInterval(() => {
+  if (tasks.length !== 6) {
+    console.warn('Task integrity compromised');
+  }
+}, 5000);
+
+// Console easter egg
+console.log(`
+  ╔═══════════════════════════════════╗
+  ║        OSINT Challenge            ║
+  ║                                   ║
+  ║   Looking for shortcuts? 🕵️       ║
+  ║   That's not very OSINT of you!   ║
+  ║                                   ║
+  ║   Happy investigating! 🔍         ║
+  ╚═══════════════════════════════════╝
+`);
+
+</script>
+
+</body>
+</html>
