@@ -595,7 +595,7 @@
         <p>The challenge at hand will have you investigating a malicious threat actor that has compromised somebody's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly. I highly recommend that you dig deeper than you think throughout this.</p>
         
         <div class="briefing-note">
-          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to account holder and attempting brute-force attacks. Also you get a NEW hint everytime you get a wrong answer.
+          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to account holder and attempting brute-force attacks. Also, you get a NEW hint every time you get a wrong answer.
 
           My final thing to note, testing this site in general, including checking its source code is deemed out of scope for this challenge. We want to encourage real-world OSINT skills, not source-diving
         </div>
@@ -658,7 +658,7 @@ const tasks = [
   {
     id: 'task1',
     title: 'Task 1: The Tip Off',
-    description: 'Analyze the provided image to identify the attacker',
+    description: 'Analyse the provided image to identify the attacker',
     questions: [
       'What username does the attacker go by? (Click <a href="https://lewgys.github.io/The_OSINT_Gauntlet/images/pwnedletter.svg" data-original-path="/Users/beansbently/Desktop/Screenshots/pwned_note.png" data-uploaded-by="beansbently" target="_blank" rel="noopener noreferrer">here</a> to view the tip-off image.)'
     ],
@@ -679,7 +679,7 @@ const tasks = [
     answers: ['beansbently1337@gmail.com', 'elliot alderson'],
     keys: 2,
     hints: [
-      ['Try searching the username on different platforms', 'Look for profile information on professional sites', 'Look for profile information on professional sites'],
+      ['Try searching the username on different platforms', 'Look for profile information on professional sites', 'GitHub'],
       ['Social media profiles often contain real names', 'Look through social media', 'No more hints :)']
     ]
   },
@@ -688,7 +688,7 @@ const tasks = [
     title: 'Task 3: Cryptic Crypto',
     description: 'Investigate cryptocurrency activities',
     questions: [
-      'What Cryptocurrency does the attacker own a wallet for?',
+      'What Cryptocurrency does the attacker own a wallet for? (abbreviation of the crypto)',
       'What is the attacker\'s cryptocurrency wallet address?',
       'What mining pool did the attacker receive crypto from on January 23rd, 2021?',
       'What other cryptocurrency did the attacker exchange with?'
@@ -696,10 +696,10 @@ const tasks = [
     answers: ['eth', '0xa102397dbeebefd8cd2f73a89122fcdb53abb6ef', 'ethermine', 'tether'],
     keys: 4,
     hints: [
-      ['Look for cryptocurrency mentions in profiles', 'Check for wallet addresses in bios', 'ETH is a common cryptocurrency'],
-      ['Wallet addresses are long alphanumeric strings', 'Check social media profiles for addresses', 'Ethereum addresses start with 0x'],
+      ['Look for cryptocurrency mentions in profiles', 'Check for wallet address files', 'ETH is a common cryptocurrency'],
+      ['Wallet addresses are long alphanumeric strings', 'Check social media profiles for addresses', 'Look Deeper into pre-existing files'],
       ['Use blockchain explorers to trace transactions', 'Check transaction history for the date', 'Mining pools have identifiable names'],
-      ['Look at exchange transactions', 'Check what was traded for', 'Tether is a stablecoin']
+      ['Look at exchange transactions', 'Check what was traded for', 'No more hints :)']
     ]
   },
   {
@@ -713,8 +713,8 @@ const tasks = [
     answers: ['beansbentlyel', 'BEANS4U'],
     keys: 2,
     hints: [
-      ['Try variations of known usernames', 'Check for similar handles', 'Sometimes letters are replaced with numbers or vice versa'],
-      ['Check professional networking sites', 'Look for employment history', 'The company name might be related to the username']
+      ['Try variations of known usernames', 'Check for similar handles', 'No More Hints :)'],
+      ['Check professional networking sites', 'Look for employment history', 'What documents are usually found to have past experience?']
     ]
   },
   {
@@ -728,8 +728,8 @@ const tasks = [
     answers: ['dca', 'dxb'],
     keys: 2,
     hints: [
-      ['Look for landmarks in photos', 'Check metadata or location tags', 'DCA is in Washington DC area'],
-      ['Check flight paths and common layovers', 'Dubai is a major hub', 'Look for travel posts or check-ins']
+      ['Look for landmarks in photos', 'Reverse Image Search is a good tool', 'No More Hints?'],
+      ['Anything stand out in the picture?', 'No More Hints :)', 'No More Hints :)']
     ]
   },
   {
@@ -744,8 +744,8 @@ const tasks = [
     keys: 2,
     hiddenUntil: 'task5',
     hints: [
-      ['Delve Deeper into places you have already been', 'you need to DIG deeper', 'Check DNS records'],
-      ['Sometimes the answer is hidden in plain sight', 'Check gaming references', 'Look for fantasy or game-related content']
+      ['Delve Deeper into places you have already been', 'you need to DIG deeper', 'This is a bonus round, you do not get a third hint ;)'],
+      ['Sometimes the answer is hidden in plain sight', 'No More Hints :)', 'No More Hints :)']
     ]
   }
 ];
