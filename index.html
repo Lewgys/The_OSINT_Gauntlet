@@ -26,7 +26,7 @@
     text-align: center;
     margin-bottom: 1.5rem;
     position: relative;
-    padding-top: 3rem; /* Reduced padding since hint counter is moved */
+    padding-top: 3rem;
   }
   
   .hint-counter {
@@ -287,14 +287,31 @@
     to { opacity: 1; transform: translateY(0); }
   }
   
+  .question-container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(176, 211, 81, 0.1);
+  }
+  
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  
   .task-content p.question {
-    margin: 1rem 0 0.5rem;
+    margin: 0;
     font-weight: 600;
     color: #f0f0f0;
     padding: 0.5rem;
     background: rgba(176, 211, 81, 0.1);
     border-radius: 8px;
     border-left: 3px solid #b0d351;
+    flex: 1;
+    margin-right: 0.5rem;
   }
   
   .task-content input[type="text"] {
@@ -307,7 +324,7 @@
     background: #2a2a2a;
     color: #eee;
     transition: border-color 0.3s ease;
-    margin-bottom: 0.5rem;
+    margin-top: 0.5rem;
   }
   
   .task-content input[type="text"]:focus {
@@ -449,12 +466,12 @@
     background: rgba(255, 193, 7, 0.2);
     border: 1px solid #ffc107;
     color: #ffecb3;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 0.8rem;
     border-radius: 6px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    margin-top: 0.5rem;
     transition: all 0.3s ease;
+    min-width: 80px;
   }
   
   .hint-btn:hover {
@@ -491,7 +508,7 @@
     }
     
     .header {
-      padding-top: 3rem; /* Keep consistent padding */
+      padding-top: 3rem;
     }
     
     h1 {
@@ -503,7 +520,7 @@
     }
     
     .task-content input[type="text"] {
-      font-size: 16px; /* Prevents zoom on iOS */
+      font-size: 16px;
     }
     
     li.task {
@@ -526,12 +543,20 @@
       width: 100%;
       margin-top: 0.5rem;
     }
+    
+    .question-header {
+      flex-direction: column;
+    }
+    
+    .task-content p.question {
+      margin-right: 0;
+      margin-bottom: 0.5rem;
+    }
   }
   
-  /* Additional media query for very narrow screens */
   @media (max-width: 480px) {
     .header {
-      padding-top: 2.5rem; /* Reduced padding for small screens */
+      padding-top: 2.5rem;
     }
     
     .hint-counter {
@@ -547,6 +572,11 @@
     
     h1 {
       font-size: 1.8rem;
+    }
+    
+    .hint-btn {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
     }
   }
 </style>
@@ -623,7 +653,7 @@ function sanitizeInput(input) {
   return input.trim().replace(/[<>]/g, '');
 }
 
-// Enhanced tasks configuration with hints
+// Enhanced tasks configuration with hints per question
 const tasks = [
   {
     id: 'task1',
@@ -635,10 +665,7 @@ const tasks = [
     answers: ['beansbently'],
     keys: 1,
     hints: [
-      'No hints on Task 1 nice try lol',
-      'Nice try, still no hints on Task 1...Unless you get it wrong again',
-      'I lied no Hints :)'
-      
+      ['No hints on Task 1 nice try lol', 'Nice try, still no hints on Task 1...Unless you get it wrong again', 'I lied no Hints :)']
     ]
   },
   {
@@ -652,9 +679,8 @@ const tasks = [
     answers: ['beansbently1337@gmail.com', 'elliot alderson'],
     keys: 2,
     hints: [
-      'Try searching the username on different platforms both social media and professional sites',
-      'Look for profile information and contact details',
-      'Social media profiles often contain real names'
+      ['Try searching the username on different platforms', 'Look for profile information on professional sites', 'Check LinkedIn or similar platforms'],
+      ['Social media profiles often contain real names', 'Check the "About" section of profiles', 'Sometimes usernames are variations of real names']
     ]
   },
   {
@@ -670,9 +696,10 @@ const tasks = [
     answers: ['eth', '0xa102397dbeebefd8cd2f73a89122fcdb53abb6ef', 'ethermine', 'tether'],
     keys: 4,
     hints: [
-      'Look for cryptocurrency addresses in social media/professional sites',
-      'Use blockchain explorers to trace transactions',
-      'Mining pools often have identifiable signatures'
+      ['Look for cryptocurrency mentions in profiles', 'Check for wallet addresses in bios', 'ETH is a common cryptocurrency'],
+      ['Wallet addresses are long alphanumeric strings', 'Check social media profiles for addresses', 'Ethereum addresses start with 0x'],
+      ['Use blockchain explorers to trace transactions', 'Check transaction history for the date', 'Mining pools have identifiable names'],
+      ['Look at exchange transactions', 'Check what was traded for', 'Tether is a stablecoin']
     ]
   },
   {
@@ -686,9 +713,8 @@ const tasks = [
     answers: ['beansbentlyel', 'BEANS4U'],
     keys: 2,
     hints: [
-      'Try variations of known usernames',
-      'Look for recent account activity',
-      'Has the attacker uploaded past experience on a relevant site?'
+      ['Try variations of known usernames', 'Check for similar handles', 'Sometimes letters are replaced with numbers or vice versa'],
+      ['Check professional networking sites', 'Look for employment history', 'The company name might be related to the username']
     ]
   },
   {
@@ -702,9 +728,8 @@ const tasks = [
     answers: ['dca', 'dxb'],
     keys: 2,
     hints: [
-      'Anything in the image that stands out?',
-      'Use reverse image search for location clues',
-      'Im not giving you another hint...'
+      ['Look for landmarks in photos', 'Check metadata or location tags', 'DCA is in Washington DC area'],
+      ['Check flight paths and common layovers', 'Dubai is a major hub', 'Look for travel posts or check-ins']
     ]
   },
   {
@@ -719,9 +744,8 @@ const tasks = [
     keys: 2,
     hiddenUntil: 'task5',
     hints: [
-      'Delve Deeper into places you have already been',
-      'you need to DIG deeper',
-      'Sometimes the answer is hidden in plain sight'
+      ['Delve Deeper into places you have already been', 'you need to DIG deeper', 'Check DNS records'],
+      ['Sometimes the answer is hidden in plain sight', 'Check gaming references', 'Look for fantasy or game-related content']
     ]
   }
 ];
@@ -767,6 +791,7 @@ class OSINTChallenge {
   constructor() {
     this.completedTasks = this.loadProgress();
     this.attemptCounts = {};
+    this.questionAttempts = {}; // Track attempts per question
     this.hintClickCount = this.loadHintCount();
     this.taskListEl = document.getElementById('taskList');
     this.hintCountEl = document.getElementById('hintCount');
@@ -830,7 +855,7 @@ class OSINTChallenge {
 
   updateProgress() {
     const completed = Object.keys(this.completedTasks).length;
-    const isTask6Unlocked = this.completedTasks['task5']; // Task 6 unlocks after Task 5
+    const isTask6Unlocked = this.completedTasks['task5'];
     const visibleTotal = isTask6Unlocked ? 6 : 5;
     const percentage = (completed / visibleTotal) * 100;
     
@@ -840,7 +865,6 @@ class OSINTChallenge {
     progressFill.style.width = `${percentage}%`;
     progressText.textContent = `${completed} of ${visibleTotal} tasks completed`;
     
-    // Special handling when Task 6 is unlocked
     if (isTask6Unlocked && !document.querySelector('[data-task-id="task6"]').style.display !== 'none') {
       progressText.textContent += ' 🎁 Bonus task unlocked!';
     }
@@ -854,17 +878,14 @@ class OSINTChallenge {
       li.setAttribute('role', 'button');
       li.setAttribute('tabindex', '0');
 
-      // Check if task should be hidden
       if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
         li.style.display = 'none';
       }
 
-      // Check if task is completed
       if (this.completedTasks[task.id]) {
         li.classList.add('completed');
       }
 
-      // Title section
       const titleDiv = document.createElement('div');
       titleDiv.className = 'task-title';
       
@@ -898,11 +919,9 @@ class OSINTChallenge {
       titleDiv.appendChild(statusDiv);
       li.appendChild(titleDiv);
 
-      // Content section
       const contentDiv = document.createElement('div');
       contentDiv.className = 'task-content';
 
-      // Task description
       if (task.description) {
         const descP = document.createElement('p');
         descP.style.fontStyle = 'italic';
@@ -912,11 +931,26 @@ class OSINTChallenge {
         contentDiv.appendChild(descP);
       }
 
-      // Questions and inputs
+      // Questions with individual hint buttons
       task.questions.forEach((q, i) => {
+        const questionContainer = document.createElement('div');
+        questionContainer.className = 'question-container';
+        
+        const questionHeader = document.createElement('div');
+        questionHeader.className = 'question-header';
+        
         const questionP = document.createElement('p');
         questionP.className = 'question';
         questionP.innerHTML = q;
+        
+        const hintBtn = document.createElement('button');
+        hintBtn.textContent = 'Hint';
+        hintBtn.className = 'hint-btn';
+        hintBtn.setAttribute('aria-label', `Show hint for question ${i + 1}`);
+        hintBtn.dataset.questionIndex = i;
+        
+        questionHeader.appendChild(questionP);
+        questionHeader.appendChild(hintBtn);
         
         const input = document.createElement('input');
         input.type = 'text';
@@ -924,36 +958,26 @@ class OSINTChallenge {
         input.id = `${task.id}_q${i}`;
         input.setAttribute('aria-label', `Answer for question ${i + 1}`);
         
-        contentDiv.appendChild(questionP);
-        contentDiv.appendChild(input);
+        const hintText = document.createElement('div');
+        hintText.className = 'hint-text';
+        hintText.id = `${task.id}_hint${i}`;
+        
+        questionContainer.appendChild(questionHeader);
+        questionContainer.appendChild(input);
+        questionContainer.appendChild(hintText);
+        
+        contentDiv.appendChild(questionContainer);
+        
+        // Hint button handler
+        hintBtn.addEventListener('click', () => this.showQuestionHint(task, i, hintText, hintBtn));
       });
-
-      // Buttons section
-      const buttonsDiv = document.createElement('div');
-      buttonsDiv.style.display = 'flex';
-      buttonsDiv.style.gap = '1rem';
-      buttonsDiv.style.marginTop = '1rem';
 
       // Submit button
       const submitBtn = document.createElement('button');
       submitBtn.textContent = 'Submit';
       submitBtn.className = 'submit-btn';
       submitBtn.setAttribute('aria-label', 'Submit answers');
-
-      // Hint button
-      const hintBtn = document.createElement('button');
-      hintBtn.textContent = 'Show Hint';
-      hintBtn.className = 'hint-btn';
-      hintBtn.setAttribute('aria-label', 'Show hint');
-
-      buttonsDiv.appendChild(submitBtn);
-      buttonsDiv.appendChild(hintBtn);
-      contentDiv.appendChild(buttonsDiv);
-
-      // Hint text
-      const hintText = document.createElement('div');
-      hintText.className = 'hint-text';
-      contentDiv.appendChild(hintText);
+      contentDiv.appendChild(submitBtn);
 
       // Feedback
       const feedbackP = document.createElement('p');
@@ -964,17 +988,16 @@ class OSINTChallenge {
       li.appendChild(contentDiv);
 
       // Event handlers
-      this.setupEventHandlers(li, task, index, submitBtn, hintBtn, hintText, feedbackP);
+      this.setupEventHandlers(li, task, index, submitBtn, feedbackP);
 
       this.taskListEl.appendChild(li);
     });
   }
 
-  setupEventHandlers(li, task, index, submitBtn, hintBtn, hintText, feedbackP) {
+  setupEventHandlers(li, task, index, submitBtn, feedbackP) {
     const titleDiv = li.querySelector('.task-title');
     const contentDiv = li.querySelector('.task-content');
 
-    // Toggle task content
     const toggleTask = () => {
       if (this.isTaskLocked(task, index)) {
         this.showFeedback(feedbackP, 'You need to complete the previous task first!', 'error');
@@ -988,7 +1011,6 @@ class OSINTChallenge {
 
       const isOpen = li.classList.contains('open');
       
-      // Close all other tasks
       document.querySelectorAll('li.task.open').forEach(openLi => {
         if (openLi !== li) {
           openLi.classList.remove('open');
@@ -1014,16 +1036,10 @@ class OSINTChallenge {
       }
     });
 
-    // Prevent content clicks from closing
     contentDiv.addEventListener('click', e => e.stopPropagation());
 
-    // Submit handler
     submitBtn.addEventListener('click', () => this.handleSubmit(task, feedbackP, submitBtn));
 
-    // Hint handler
-    hintBtn.addEventListener('click', () => this.showHint(task, hintText, hintBtn));
-
-    // Enter key on inputs
     contentDiv.querySelectorAll('input').forEach(input => {
       input.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
@@ -1037,6 +1053,34 @@ class OSINTChallenge {
     return index > 0 && !this.completedTasks[tasks[index - 1]?.id];
   }
 
+  showQuestionHint(task, questionIndex, hintText, hintBtn) {
+    if (!task.hints || !task.hints[questionIndex]) return;
+    
+    // Initialize question attempts if not exists
+    const questionKey = `${task.id}_q${questionIndex}`;
+    if (!this.questionAttempts[questionKey]) {
+      this.questionAttempts[questionKey] = 0;
+    }
+    
+    const attemptCount = this.questionAttempts[questionKey];
+    const availableHints = task.hints[questionIndex];
+    const hintIndex = Math.min(attemptCount, availableHints.length - 1);
+    
+    if (hintText.style.display === 'block') {
+      hintText.style.display = 'none';
+      hintBtn.textContent = 'Hint';
+    } else {
+      // Increment hint counter
+      this.hintClickCount++;
+      this.saveHintCount();
+      this.updateHintCounter();
+      
+      hintText.textContent = availableHints[hintIndex];
+      hintText.style.display = 'block';
+      hintBtn.textContent = 'Hide';
+    }
+  }
+
   async handleSubmit(task, feedbackP, submitBtn) {
     const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
     const answers = inputs.map(inp => sanitizeInput(inp.value));
@@ -1046,15 +1090,15 @@ class OSINTChallenge {
       return;
     }
 
-    // Show loading state
     submitBtn.disabled = true;
     submitBtn.classList.add('loading');
     submitBtn.textContent = '';
 
     try {
-      const isCorrect = await this.validateAnswers(task, answers);
+      const results = await this.validateAnswersIndividually(task, answers);
+      const allCorrect = results.every(r => r);
       
-      if (isCorrect) {
+      if (allCorrect) {
         if (this.completedTasks[task.id]) {
           this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
         } else {
@@ -1071,14 +1115,23 @@ class OSINTChallenge {
           this.unlockNextTask(task);
         }
       } else {
+        // Increment attempt counts for incorrect questions
+        results.forEach((correct, index) => {
+          if (!correct) {
+            const questionKey = `${task.id}_q${index}`;
+            this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
+          }
+        });
+        
         this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
-        this.showFeedback(feedbackP, `Incorrect. Attempt ${this.attemptCounts[task.id]}. Try again!`, 'error');
+        
+        const incorrectCount = results.filter(r => !r).length;
+        this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
       }
     } catch (error) {
       this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
       console.error('Validation error:', error);
     } finally {
-      // Reset button state
       setTimeout(() => {
         submitBtn.disabled = false;
         submitBtn.classList.remove('loading');
@@ -1087,41 +1140,21 @@ class OSINTChallenge {
     }
   }
 
-  async validateAnswers(task, userAnswers) {
-    if (userAnswers.length !== task.answers.length) return false;
+  async validateAnswersIndividually(task, userAnswers) {
+    if (userAnswers.length !== task.answers.length) return Array(task.answers.length).fill(false);
 
+    const results = [];
     for (let i = 0; i < userAnswers.length; i++) {
       const userHash = await sha256(userAnswers[i]);
       const correctHash = await sha256(task.answers[i]);
-      if (userHash !== correctHash) return false;
+      results.push(userHash === correctHash);
     }
-    return true;
+    return results;
   }
 
   showFeedback(feedbackEl, message, type) {
     feedbackEl.textContent = message;
     feedbackEl.className = `feedback ${type}`;
-  }
-
-  showHint(task, hintText, hintBtn) {
-    if (!task.hints) return;
-    
-    const attemptCount = this.attemptCounts[task.id] || 0;
-    const hintIndex = Math.min(attemptCount, task.hints.length - 1);
-    
-    if (hintText.style.display === 'block') {
-      hintText.style.display = 'none';
-      hintBtn.textContent = 'Show Hint';
-    } else {
-      // Increment hint counter when showing a hint
-      this.hintClickCount++;
-      this.saveHintCount();
-      this.updateHintCounter();
-      
-      hintText.textContent = task.hints[hintIndex];
-      hintText.style.display = 'block';
-      hintBtn.textContent = 'Hide Hint';
-    }
   }
 
   updateTaskStatus(taskId) {
@@ -1148,12 +1181,12 @@ class OSINTChallenge {
       }
     }
 
-    // Check for hidden tasks
     tasks.forEach(task => {
       if (task.hiddenUntil === currentTask.id) {
         const hiddenTaskEl = document.querySelector(`[data-task-id="${task.id}"]`);
         if (hiddenTaskEl) {
           hiddenTaskEl.style.display = 'list-item';
+          hiddenTaskEl.classList.add('bonus');
         }
       }
     });
@@ -1211,14 +1244,12 @@ class OSINTChallenge {
 
     animate();
     
-    // Hide fireworks after animation duration
     setTimeout(() => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }, CONFIG.ANIMATION_DURATION);
   }
 }
 
-// Handle window resize for fireworks canvas
 window.addEventListener('resize', () => {
   const canvas = document.getElementById('fireworks');
   if (canvas) {
@@ -1227,10 +1258,8 @@ window.addEventListener('resize', () => {
   }
 });
 
-// Keyboard navigation improvements
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    // Close all open tasks
     document.querySelectorAll('li.task.open').forEach(li => {
       li.classList.remove('open');
       li.querySelector('.task-content').style.display = 'none';
@@ -1238,14 +1267,12 @@ document.addEventListener('keydown', (e) => {
   }
 });
 
-// Anti-tampering (basic)
 setInterval(() => {
   if (tasks.length !== 6) {
     console.warn('Task integrity compromised');
   }
 }, 5000);
 
-// Console easter egg
 console.log(`
   ╔═══════════════════════════════════╗
   ║        OSINT Challenge            ║
