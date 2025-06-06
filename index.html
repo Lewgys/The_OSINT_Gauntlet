@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="description" content="Interactive OSINT Challenge - Test your open source intelligence skills">
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https:;">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com;">
 <title>OSINT Challenge</title>
 <style>
   * {
@@ -21,7 +21,217 @@
     padding: 1rem;
     line-height: 1.6;
   }
-  
+
+  /* Login/Registration Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s ease;
+  }
+
+  .modal-title {
+    color: #b0d351;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    color: #eee;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+
+  .form-submit {
+    width: 100%;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+  }
+
+  .form-submit:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+
+  .form-error {
+    color: #ff5252;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  /* Progress Dashboard Button */
+  .dashboard-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+    z-index: 1000;
+  }
+
+  .dashboard-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+
+  /* User info display */
+  .user-info {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: #b0d351;
+    display: none;
+    z-index: 1000;
+  }
+
+  .user-info.active {
+    display: block;
+  }
+
+  /* Progress Dashboard */
+  .dashboard-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10001;
+    overflow-y: auto;
+  }
+
+  .dashboard-modal.active {
+    display: block;
+  }
+
+  .dashboard-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .dashboard-title {
+    color: #b0d351;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #444;
+  }
+
+  .leaderboard-table th {
+    background: rgba(176, 211, 81, 0.1);
+    color: #b0d351;
+    font-weight: 700;
+  }
+
+  .leaderboard-table tr:hover {
+    background: rgba(176, 211, 81, 0.05);
+  }
+
+  .close-dashboard {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+
+  .close-dashboard:hover {
+    color: #b0d351;
+  }
+
+  /* Existing styles from your original file */
   .header {
     text-align: center;
     margin-bottom: 1.5rem;
@@ -552,6 +762,13 @@
       margin-right: 0;
       margin-bottom: 0.5rem;
     }
+    
+    .dashboard-button {
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+    }
   }
   
   @media (max-width: 480px) {
@@ -582,6 +799,46 @@
 </style>
 </head>
 <body>
+
+<!-- Login/Registration Modal -->
+<div class="modal active" id="loginModal">
+  <div class="modal-content">
+    <h2 class="modal-title">Welcome to OSINT Challenge</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="userName">Your Name</label>
+        <input type="text" id="userName" required autocomplete="name">
+      </div>
+      <div class="form-group">
+        <label for="userTeam">Team Name (Optional)</label>
+        <input type="text" id="userTeam" autocomplete="organization">
+      </div>
+      <button type="submit" class="form-submit">Start Challenge</button>
+      <div class="form-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- User Info Display -->
+<div class="user-info" id="userInfo">
+  <span id="userDisplay"></span>
+</div>
+
+<!-- Progress Dashboard Button -->
+<button class="dashboard-button" id="dashboardBtn" style="display: none;">
+  📊 Progress Dashboard
+</button>
+
+<!-- Progress Dashboard Modal -->
+<div class="dashboard-modal" id="dashboardModal">
+  <div class="dashboard-content">
+    <button class="close-dashboard" id="closeDashboard">×</button>
+    <h2 class="dashboard-title">OSINT Challenge Leaderboard</h2>
+    <div id="leaderboardContent">
+      <p style="text-align: center; color: #999;">Loading leaderboard...</p>
+    </div>
+  </div>
+</div>
 
 <div class="header">
   <div class="briefing-container">
@@ -625,7 +882,25 @@
 <ul class="task-list" id="taskList"></ul>
 <canvas id="fireworks"></canvas>
 
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+
 <script>
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyABxG0WEo6nJpVrxNGRLs-wLitFdMHTUt0",
+  authDomain: "osint-gauntlet.firebaseapp.com",
+  projectId: "osint-gauntlet",
+  storageBucket: "osint-gauntlet.firebasestorage.app",
+  messagingSenderId: "740657297987",
+  appId: "1:740657297987:web:a8bfe968918690da94f2f6"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
 // Configuration
 const CONFIG = {
   HASH_ROUNDS: 1000,
@@ -633,6 +908,9 @@ const CONFIG = {
   ANIMATION_DURATION: 5000,
   STORAGE_KEY: 'osint_challenge_progress'
 };
+
+// Current user state
+let currentUser = null;
 
 // Enhanced SHA-256 hashing with salt
 async function sha256(str, salt = 'osint2024') {
@@ -750,8 +1028,158 @@ const tasks = [
   }
 ];
 
-// Briefing functionality
+// User Management
+async function saveUserToFirebase(name, team) {
+  try {
+    const userRef = await db.collection('users').add({
+      name: name,
+      team: team || 'Solo',
+      startTime: firebase.firestore.FieldValue.serverTimestamp(),
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return userRef.id;
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return null;
+  }
+}
+
+async function updateUserProgress(userId, taskId, completed, hints, attempts) {
+  try {
+    await db.collection('progress').add({
+      userId: userId,
+      taskId: taskId,
+      completed: completed,
+      hintsUsed: hints,
+      attempts: attempts,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Update user's last active time
+    await db.collection('users').doc(userId).update({
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (error) {
+    console.error('Error updating progress:', error);
+  }
+}
+
+async function loadLeaderboard() {
+  try {
+    const users = await db.collection('users').get();
+    const progress = await db.collection('progress').get();
+    
+    const userMap = {};
+    users.forEach(doc => {
+      userMap[doc.id] = { id: doc.id, ...doc.data(), completedTasks: 0, totalHints: 0 };
+    });
+    
+    progress.forEach(doc => {
+      const data = doc.data();
+      if (data.completed && userMap[data.userId]) {
+        userMap[data.userId].completedTasks++;
+        userMap[data.userId].totalHints += data.hintsUsed || 0;
+      }
+    });
+    
+    return Object.values(userMap).sort((a, b) => {
+      if (b.completedTasks !== a.completedTasks) {
+        return b.completedTasks - a.completedTasks;
+      }
+      return a.totalHints - b.totalHints;
+    });
+  } catch (error) {
+    console.error('Error loading leaderboard:', error);
+    return [];
+  }
+}
+
+// Login functionality
 document.addEventListener('DOMContentLoaded', () => {
+  const loginForm = document.getElementById('loginForm');
+  const loginModal = document.getElementById('loginModal');
+  const userInfo = document.getElementById('userInfo');
+  const userDisplay = document.getElementById('userDisplay');
+  const dashboardBtn = document.getElementById('dashboardBtn');
+  const dashboardModal = document.getElementById('dashboardModal');
+  const closeDashboard = document.getElementById('closeDashboard');
+  
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('userName').value.trim();
+    const team = document.getElementById('userTeam').value.trim();
+    
+    if (!name) {
+      document.getElementById('loginError').textContent = 'Please enter your name';
+      return;
+    }
+    
+    const userId = await saveUserToFirebase(name, team);
+    
+    if (userId) {
+      currentUser = { id: userId, name, team };
+      loginModal.classList.remove('active');
+      userInfo.classList.add('active');
+      userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
+      dashboardBtn.style.display = 'block';
+      
+      // Initialize the main challenge
+      new OSINTChallenge();
+    } else {
+      document.getElementById('loginError').textContent = 'Error starting challenge. Please try again.';
+    }
+  });
+  
+  // Dashboard functionality
+  dashboardBtn.addEventListener('click', async () => {
+    dashboardModal.classList.add('active');
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">Loading leaderboard...</p>';
+    
+    const leaderboard = await loadLeaderboard();
+    
+    if (leaderboard.length === 0) {
+      leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">No progress data yet.</p>';
+      return;
+    }
+    
+    let html = `
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th>Rank</th>
+            <th>Name</th>
+            <th>Team</th>
+            <th>Tasks Completed</th>
+            <th>Hints Used</th>
+          </tr>
+        </thead>
+        <tbody>
+    `;
+    
+    leaderboard.forEach((user, index) => {
+      const isCurrentUser = currentUser && user.id === currentUser.id;
+      html += `
+        <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
+          <td>${index + 1}</td>
+          <td>${user.name}${isCurrentUser ? ' (You)' : ''}</td>
+          <td>${user.team || 'Solo'}</td>
+          <td>${user.completedTasks}/6</td>
+          <td>${user.totalHints}</td>
+        </tr>
+      `;
+    });
+    
+    html += '</tbody></table>';
+    leaderboardContent.innerHTML = html;
+  });
+  
+  closeDashboard.addEventListener('click', () => {
+    dashboardModal.classList.remove('active');
+  });
+  
+  // Briefing functionality
   const briefingBtn = document.getElementById('briefingBtn');
   const briefingDropdown = document.getElementById('briefingDropdown');
   const briefingClose = document.getElementById('briefingClose');
@@ -779,11 +1207,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeBriefing();
+      if (dashboardModal.classList.contains('active')) {
+        dashboardModal.classList.remove('active');
+      }
     }
   });
-
-  // Initialize the main challenge
-  new OSINTChallenge();
 });
 
 // Game state management
@@ -1113,6 +1541,17 @@ class OSINTChallenge {
           this.updateTaskStatus(task.id);
           this.updateProgress();
           this.unlockNextTask(task);
+          
+          // Update Firebase
+          if (currentUser) {
+            await updateUserProgress(
+              currentUser.id,
+              task.id,
+              true,
+              this.hintClickCount,
+              this.attemptCounts[task.id] || 1
+            );
+          }
         }
       } else {
         // Increment attempt counts for incorrect questions
