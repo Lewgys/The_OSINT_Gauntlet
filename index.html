@@ -1573,17 +1573,26 @@ async function checkAchievements(context, data = {}) {
   }
 }
 
+// FIXED: Updated user progress tracking with single document per user
 async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   try {
-    await db.collection('progress').add({
+    // Use a single document per user in userProgress collection
+    const userProgressRef = db.collection('userProgress').doc(userId);
+    
+    await userProgressRef.set({
       userId: userId,
-      taskId: taskId,
-      completed: completed,
-      hintsUsed: hints,
-      attempts: attempts,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
+      totalHints: hints,  // Store the current TOTAL hints
+      completedTasks: firebase.firestore.FieldValue.arrayUnion(taskId), // Track completed tasks
+      tasks: {
+        [taskId]: {
+          completed: completed,
+          attempts: attempts,
+          completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }
+      },
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    
     // Update user's last active time
     await db.collection('users').doc(userId).update({
       lastActive: firebase.firestore.FieldValue.serverTimestamp()
@@ -1600,25 +1609,32 @@ async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   }
 }
 
+// FIXED: Updated leaderboard to work with new structure
 async function loadLeaderboard() {
   try {
     const users = await db.collection('users').get();
-    const progress = await db.collection('progress').get();
+    const userProgress = await db.collection('userProgress').get();
     
-    const userMap = {};
+    // Create a map of user progress
+    const progressMap = {};
+    userProgress.forEach(doc => {
+      progressMap[doc.id] = doc.data();
+    });
+    
+    const leaderboard = [];
     users.forEach(doc => {
-      userMap[doc.id] = { id: doc.id, ...doc.data(), completedTasks: 0, totalHints: 0 };
+      const userData = doc.data();
+      const progress = progressMap[doc.id] || {};
+      
+      leaderboard.push({
+        id: doc.id,
+        ...userData,
+        completedTasks: (progress.completedTasks || []).length,
+        totalHints: progress.totalHints || 0
+      });
     });
     
-    progress.forEach(doc => {
-      const data = doc.data();
-      if (data.completed && userMap[data.userId]) {
-        userMap[data.userId].completedTasks++;
-        userMap[data.userId].totalHints += data.hintsUsed || 0;
-      }
-    });
-    
-    return Object.values(userMap).sort((a, b) => {
+    return leaderboard.sort((a, b) => {
       if (b.completedTasks !== a.completedTasks) {
         return b.completedTasks - a.completedTasks;
       }
@@ -2126,13 +2142,13 @@ class OSINTChallenge {
             taskHintsUsed: taskHintsUsed
           });
           
-          // Update Firebase
+          // Update Firebase with TOTAL hints count
           if (currentUser) {
             await updateUserProgress(
               currentUser.id,
               task.id,
               true,
-              this.hintClickCount,
+              this.hintClickCount,  // Pass the TOTAL hints used so far
               this.attemptCounts[task.id] || 1
             );
           }
