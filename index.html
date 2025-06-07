@@ -16,10 +16,141 @@
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
     color: #eee;
-    max-width: 900px;
+    max-width: 1400px;
     margin: 2rem auto;
     padding: 1rem;
     line-height: 1.6;
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+  }
+
+  /* Global Achievements Panel */
+  .achievements-panel {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 1.5rem;
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .achievements-title {
+    color: #b0d351;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: center;
+    border-bottom: 2px solid rgba(176, 211, 81, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .achievement-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(176, 211, 81, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    animation: slideInLeft 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .achievement-item.new {
+    animation: achievementPulse 2s ease-out;
+    border-color: #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+
+  .achievement-item.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  }
+
+  .achievement-item.gold .achievement-title {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    font-weight: 700;
+  }
+
+  .achievement-item.gold .achievement-icon {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    transform: scale(1.2);
+  }
+
+  .achievement-user {
+    font-weight: 700;
+    color: #b0d351;
+    font-size: 0.9rem;
+  }
+
+  .achievement-title {
+    font-weight: 600;
+    color: #ffd700;
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+  }
+
+  .achievement-description {
+    color: #ccc;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .achievement-time {
+    color: #888;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+  }
+
+  .achievement-icon {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.75rem;
+    font-size: 1.2rem;
+  }
+
+  .achievement-item .achievement-content {
+    margin-left: 2rem;
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes achievementPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    50% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+  }
+
+  /* Main content area */
+  .main-content {
+    min-width: 0; /* Prevents grid overflow */
   }
 
   /* Login/Registration Modal */
@@ -711,10 +842,38 @@
     border: 0;
   }
   
+  @media (max-width: 1200px) {
+    body {
+      grid-template-columns: 1fr;
+      max-width: 900px;
+    }
+    
+    .achievements-panel {
+      position: relative;
+      top: 0;
+      max-height: 300px;
+      order: -1;
+    }
+  }
+  
   @media (max-width: 768px) {
     body {
       padding: 0.5rem;
       margin: 1rem auto;
+      gap: 1rem;
+    }
+    
+    .achievements-panel {
+      max-height: 250px;
+      padding: 1rem;
+    }
+    
+    .achievements-title {
+      font-size: 1.1rem;
+    }
+    
+    .achievement-item {
+      padding: 0.75rem;
     }
     
     .header {
@@ -800,6 +959,19 @@
 </head>
 <body>
 
+<!-- Global Achievements Panel -->
+<div class="achievements-panel">
+  <div class="achievements-title">🏆 Live Achievements</div>
+  <div class="achievements-list" id="achievementsList">
+    <div style="text-align: center; color: #666; font-style: italic; padding: 2rem;">
+      Waiting for achievements...
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content">
+
 <!-- Login/Registration Modal -->
 <div class="modal active" id="loginModal">
   <div class="modal-content">
@@ -847,12 +1019,12 @@
       <button class="briefing-close" id="briefingClose">✕</button>
       <div class="briefing-title">Briefing</div>
       <div class="briefing-content">
-        <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. Within your team it is highly likely if you smash your heads together that you will complete all 5 Tasks at hand.</p>
+        <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. Within your team, it is highly likely that if you smash your heads together, you will complete all 5 Tasks at hand.</p>
         
         <p>The challenge at hand will have you investigating a malicious threat actor that has compromised somebody's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly. I highly recommend that you dig deeper than you think throughout this.</p>
         
         <div class="briefing-note">
-          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to account holder and attempting brute-force attacks. Also, you get a NEW hint every time you get a wrong answer.
+          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to the account holder and attempting brute-force attacks. Also, you get a NEW hint every time you get a wrong answer.
 
           My final thing to note, testing this site in general, including checking its source code is deemed out of scope for this challenge. We want to encourage real-world OSINT skills, not source-diving
         </div>
@@ -881,6 +1053,8 @@
 
 <ul class="task-list" id="taskList"></ul>
 <canvas id="fireworks"></canvas>
+
+</div> <!-- End main-content -->
 
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
@@ -914,6 +1088,58 @@ const SESSION_STORAGE_KEY = 'osint_challenge_user_session';
 
 // Current user state
 let currentUser = null;
+
+// Global achievements system
+const ACHIEVEMENTS = {
+  helping_hand: {
+    title: "Helping Hand (Cheater)",
+    description: "Used their First Hint.",
+    icon: "💡"
+  },
+  speedrun_hour: {
+    title: "ANY% Speed Run", 
+    description: "Has completed the OSINT Gauntlet within an hour.",
+    icon: "⚡",
+    special: "gold" // Special Styling
+  },
+  gauntlet_complete: {
+    title: "COMPLETED THE GAUNLET",
+    description: "Has Completed the OSINT Gauntlet.",
+    icon: "👑",
+    special: "gold" // Special styling
+  },
+  hint_addict: {
+    title: "This is getting embarrassing...",
+    description: "Used more than 15 Hints.",
+    icon: "🤦"
+  },
+  wrong_king: {
+    title: "King of Getting Answers Wrong",
+    description: "Has had more than 5 Answers Wrong",
+    icon: "👑❌"
+  },
+  baby_steps: {
+    title: "Baby Steps",
+    description: "Completed Task 1!",
+    icon: "👶"
+  },
+  crypto_bro: {
+    title: "Crypto Bro",
+    description: "Completed Task 3 in 30 Minutes or Less",
+    icon: "₿"
+  },
+  no_hint_hero: {
+    title: "No Hint Hero",
+    description: "Complete a Task with no Hints",
+    icon: "🦸"
+  }
+};
+
+let achievementsListener = null;
+let userStartTime = null; // Track when user started
+let taskStartTimes = {}; // Track when each task was started
+let totalWrongAnswers = 0; // Track wrong answers
+let gameInstance = null; // Store the game instance globally
 
 // Enhanced SHA-256 hashing with salt
 async function sha256(str, salt = 'osint2024') {
@@ -1003,7 +1229,7 @@ const tasks = [
     title: 'Task 5: Air Miles',
     description: 'Track travel movements',
     questions: [
-      'What airport is closest to the location the attacker shared a photo from prior to getting on their flight? (Airport code)',
+      'What airport is closest to the location where the attacker shared a photo prior to getting on their flight? (Airport code)',
       'What airport is the attacker having a layover at? (Airport code)'
     ],
     answers: ['dca', 'dxb'],
@@ -1065,7 +1291,6 @@ function clearUserSession() {
 async function saveUserToFirebase(name, team) {
   try {
     // Always create a new user entry (no checking for duplicates)
-    // This ensures each session is unique even if names are the same
     const userRef = await db.collection('users').add({
       name: name,
       team: team || 'Solo',
@@ -1094,6 +1319,258 @@ async function saveUserToFirebase(name, team) {
 // Generate unique session ID
 function generateSessionId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// Achievement Management - Fixed version
+async function unlockAchievement(achievementId, userId, userName, teamName) {
+  try {
+    console.log('Attempting to unlock achievement:', achievementId, 'for user:', userName, 'with ID:', userId);
+    
+    if (!ACHIEVEMENTS[achievementId]) {
+      console.warn('Achievement not found:', achievementId);
+      return;
+    }
+
+    if (!userId || !userName) {
+      console.error('Missing required parameters:', { userId, userName });
+      return;
+    }
+
+    // Check if user already has this achievement
+    const existingQuery = await db.collection('achievements')
+      .where('userId', '==', userId)
+      .where('achievementId', '==', achievementId)
+      .get();
+
+    if (!existingQuery.empty) {
+      console.log('User already has this achievement:', achievementId);
+      return; // User already has this achievement
+    }
+
+    console.log('Awarding achievement:', achievementId);
+    
+    // Award the achievement with proper timestamp
+    await db.collection('achievements').add({
+      userId: userId,
+      userName: userName,
+      teamName: teamName || 'Solo',
+      achievementId: achievementId,
+      achievementTitle: ACHIEVEMENTS[achievementId].title,
+      achievementDescription: ACHIEVEMENTS[achievementId].description,
+      achievementIcon: ACHIEVEMENTS[achievementId].icon,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Achievement unlocked: ${achievementId} for ${userName}`);
+  } catch (error) {
+    console.error('Error unlocking achievement:', error);
+  }
+}
+
+// Real-time achievements listener - Fixed version
+function startAchievementsListener() {
+  const achievementsList = document.getElementById('achievementsList');
+  
+  console.log('Starting achievements listener...');
+  
+  achievementsListener = db.collection('achievements')
+    .orderBy('timestamp', 'desc')
+    .limit(20)
+    .onSnapshot((snapshot) => {
+      console.log('Achievements snapshot received, changes:', snapshot.docChanges().length);
+      
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const achievement = change.doc.data();
+          const docId = change.doc.id;
+          console.log('New achievement added:', achievement);
+          
+          // Add the document ID to the achievement data
+          achievement.docId = docId;
+          
+          displayAchievement(achievement, achievementsList);
+        }
+      });
+    }, (error) => {
+      console.error('Error in achievements listener:', error);
+    });
+}
+
+// Fixed displayAchievement function
+function displayAchievement(achievement, container) {
+  // Remove placeholder if exists
+  const placeholder = container.querySelector('[style*="italic"]');
+  if (placeholder) {
+    placeholder.remove();
+  }
+
+  // Check if this achievement already exists in the DOM
+  if (achievement.docId && container.querySelector(`[data-doc-id="${achievement.docId}"]`)) {
+    console.log('Achievement already displayed:', achievement.docId);
+    return;
+  }
+
+  const achievementEl = document.createElement('div');
+  achievementEl.className = 'achievement-item new';
+  if (achievement.docId) {
+    achievementEl.setAttribute('data-doc-id', achievement.docId);
+  }
+  
+  // Add special styling for gold achievements
+  if (achievement.achievementId === 'gauntlet_complete') {
+    achievementEl.classList.add('gold');
+  }
+  
+  // Get time ago - handle both timestamp formats
+  const timeAgo = getTimeAgo(achievement.timestamp);
+  
+  achievementEl.innerHTML = `
+    <div class="achievement-icon">${achievement.achievementIcon}</div>
+    <div class="achievement-time">${timeAgo}</div>
+    <div class="achievement-content">
+      <div class="achievement-user">${achievement.userName}${achievement.teamName !== 'Solo' ? ` (${achievement.teamName})` : ''} Unlocked an Achievement!</div>
+      <div class="achievement-title">${achievement.achievementTitle}</div>
+      <div class="achievement-description">${achievement.achievementDescription}</div>
+    </div>
+  `;
+  
+  // Insert at the top
+  container.insertBefore(achievementEl, container.firstChild);
+  
+  // Remove 'new' class after animation
+  setTimeout(() => {
+    achievementEl.classList.remove('new');
+  }, 2000);
+  
+  // Keep only latest 15 achievements visible
+  while (container.children.length > 15) {
+    container.removeChild(container.lastChild);
+  }
+}
+
+// Fixed getTimeAgo function to handle Firebase timestamps
+function getTimeAgo(timestamp) {
+  if (!timestamp) return 'now';
+  
+  const now = new Date();
+  let time;
+  
+  // Handle Firebase Timestamp
+  if (timestamp && timestamp.toDate) {
+    time = timestamp.toDate();
+  } else if (timestamp && timestamp.seconds) {
+    time = new Date(timestamp.seconds * 1000);
+  } else if (typeof timestamp === 'string') {
+    time = new Date(timestamp);
+  } else {
+    return 'now';
+  }
+  
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return time.toLocaleDateString();
+}
+
+// Fixed checkAchievements function
+async function checkAchievements(context, data = {}) {
+  if (!currentUser || !currentUser.id) {
+    console.log('No current user or user ID for achievements:', currentUser);
+    return;
+  }
+  
+  console.log('Checking achievements:', context, data);
+  const { name: userName, team: teamName, id: userId } = currentUser;
+  
+  // Validate that we have all required user data
+  if (!userId || !userName) {
+    console.log('Missing required user data:', { userId, userName });
+    return;
+  }
+  
+  switch (context) {
+    case 'user_started':
+      // Record when user started the challenge
+      userStartTime = Date.now();
+      console.log('User started at:', userStartTime);
+      break;
+      
+    case 'task_started':
+      // Record when user started a specific task
+      if (data.taskId) {
+        taskStartTimes[data.taskId] = Date.now();
+        console.log('Task started:', data.taskId, 'at:', taskStartTimes[data.taskId]);
+      }
+      break;
+      
+    case 'task_completed':
+      console.log('Task completed:', data.taskId);
+      // Baby Steps - Complete Task 1
+      if (data.taskId === 'task1') {
+        await unlockAchievement('baby_steps', userId, userName, teamName);
+      }
+      
+      // Crypto Bro - Complete Task 3 in 30 minutes or less
+      if (data.taskId === 'task3') {
+        const taskStartTime = taskStartTimes['task3'];
+        if (taskStartTime) {
+          const timeSpent = (Date.now() - taskStartTime) / 1000 / 60; // minutes
+          console.log('Task 3 completed in:', timeSpent, 'minutes');
+          if (timeSpent <= 30) {
+            await unlockAchievement('crypto_bro', userId, userName, teamName);
+          }
+        }
+      }
+      
+      // No Hint Hero - Complete a task with no hints
+      if (data.taskHintsUsed === 0) {
+        console.log('Task completed with no hints');
+        await unlockAchievement('no_hint_hero', userId, userName, teamName);
+      }
+      
+      // COMPLETED THE GAUNTLET - Complete all tasks
+      if (data.completedCount === 6) {
+        await unlockAchievement('gauntlet_complete', userId, userName, teamName);
+        
+        // ANY% Speed Run - Complete within an hour
+        if (userStartTime) {
+          const totalTime = (Date.now() - userStartTime) / 1000 / 60 / 60; // hours
+          console.log('Total completion time:', totalTime, 'hours');
+          if (totalTime <= 1) {
+            await unlockAchievement('speedrun_hour', userId, userName, teamName);
+          }
+        }
+      }
+      break;
+      
+    case 'hint_used':
+      console.log('Hint used, total count:', data.hintCount);
+      // Helping Hand (Cheater) - Use first hint
+      if (data.hintCount === 1) {
+        console.log('First hint used - unlocking helping_hand');
+        await unlockAchievement('helping_hand', userId, userName, teamName);
+      }
+      
+      // This is getting embarrassing - Use more than 15 hints
+      if (data.hintCount > 15) {
+        console.log('More than 15 hints used - unlocking hint_addict');
+        await unlockAchievement('hint_addict', userId, userName, teamName);
+      }
+      break;
+      
+    case 'answer_wrong':
+      // King of Getting Answers Wrong - Have more than 5 wrong answers
+      totalWrongAnswers++;
+      console.log('Wrong answer, total count:', totalWrongAnswers);
+      if (totalWrongAnswers > 5) {
+        await unlockAchievement('wrong_king', userId, userName, teamName);
+      }
+      break;
+  }
 }
 
 async function updateUserProgress(userId, taskId, completed, hints, attempts) {
@@ -1173,8 +1650,14 @@ document.addEventListener('DOMContentLoaded', () => {
     userDisplay.textContent = `${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
     dashboardBtn.style.display = 'block';
     
-    // Initialize the main challenge
-    new OSINTChallenge();
+    //Initialise the main challenge
+    gameInstance = new OSINTChallenge();
+    
+    // Start listening for achievements
+    startAchievementsListener();
+    
+    // Mark user as started for achievement tracking
+    checkAchievements('user_started');
   }
   
   loginForm.addEventListener('submit', async (e) => {
@@ -1197,8 +1680,14 @@ document.addEventListener('DOMContentLoaded', () => {
       userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
       dashboardBtn.style.display = 'block';
       
-      // Initialize the main challenge
-      new OSINTChallenge();
+      //Initialise the main challenge
+      gameInstance = new OSINTChallenge();
+      
+      // Start listening for achievements
+      startAchievementsListener();
+      
+      // Mark user as started for achievement tracking
+      checkAchievements('user_started');
     } else {
       document.getElementById('loginError').textContent = 'Error starting challenge. Please try again.';
     }
@@ -1294,6 +1783,7 @@ class OSINTChallenge {
     this.attemptCounts = {};
     this.questionAttempts = {}; // Track attempts per question
     this.hintClickCount = this.loadHintCount();
+    this.taskHintsUsed = {}; // Track hints used per task
     this.taskListEl = document.getElementById('taskList');
     this.hintCountEl = document.getElementById('hintCount');
     this.init();
@@ -1432,6 +1922,9 @@ class OSINTChallenge {
         contentDiv.appendChild(descP);
       }
 
+      //Initialise task hints counter
+      this.taskHintsUsed[task.id] = 0;
+
       // Questions with individual hint buttons
       task.questions.forEach((q, i) => {
         const questionContainer = document.createElement('div');
@@ -1526,6 +2019,9 @@ class OSINTChallenge {
         li.classList.add('open');
         contentDiv.style.display = 'block';
         contentDiv.querySelector('input')?.focus();
+        
+        // Mark task as started for achievement tracking
+        checkAchievements('task_started', { taskId: task.id });
       }
     };
 
@@ -1573,8 +2069,13 @@ class OSINTChallenge {
     } else {
       // Increment hint counter
       this.hintClickCount++;
+      this.taskHintsUsed[task.id]++;
       this.saveHintCount();
       this.updateHintCounter();
+      
+      // Check for hint achievements
+      console.log('Checking hint achievements, hint count:', this.hintClickCount);
+      checkAchievements('hint_used', { hintCount: this.hintClickCount });
       
       hintText.textContent = availableHints[hintIndex];
       hintText.style.display = 'block';
@@ -1615,6 +2116,16 @@ class OSINTChallenge {
           this.updateProgress();
           this.unlockNextTask(task);
           
+          // Check for task completion achievements
+          const taskHintsUsed = this.taskHintsUsed[task.id] || 0;
+          checkAchievements('task_completed', { 
+            taskId: task.id, 
+            completedCount: Object.keys(this.completedTasks).length,
+            attempts: this.attemptCounts[task.id] || 1,
+            hintsUsed: this.hintClickCount,
+            taskHintsUsed: taskHintsUsed
+          });
+          
           // Update Firebase
           if (currentUser) {
             await updateUserProgress(
@@ -1639,6 +2150,9 @@ class OSINTChallenge {
         
         const incorrectCount = results.filter(r => !r).length;
         this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
+        
+        // Track wrong answers for achievements
+        checkAchievements('answer_wrong', { wrongCount: incorrectCount });
       }
     } catch (error) {
       this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
