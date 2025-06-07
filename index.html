@@ -1609,42 +1609,141 @@ async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   }
 }
 
-// FIXED: Updated leaderboard to work with new structure
+// FIXED: Updated leaderboard to work with both old and new structures
 async function loadLeaderboard() {
   try {
     const users = await db.collection('users').get();
+    
+    // Try to get new userProgress collection
     const userProgress = await db.collection('userProgress').get();
     
-    // Create a map of user progress
-    const progressMap = {};
-    userProgress.forEach(doc => {
-      progressMap[doc.id] = doc.data();
-    });
-    
-    const leaderboard = [];
-    users.forEach(doc => {
-      const userData = doc.data();
-      const progress = progressMap[doc.id] || {};
+    // If no new structure data, fall back to old structure
+    if (userProgress.empty) {
+      console.log('No userProgress data found, using old progress structure');
       
-      leaderboard.push({
-        id: doc.id,
-        ...userData,
-        completedTasks: (progress.completedTasks || []).length,
-        totalHints: progress.totalHints || 0
+      // OLD STRUCTURE SUPPORT
+      const progress = await db.collection('progress').get();
+      
+      const userMap = {};
+      users.forEach(doc => {
+        userMap[doc.id] = { id: doc.id, ...doc.data(), completedTasks: 0, totalHints: 0 };
       });
-    });
-    
-    return leaderboard.sort((a, b) => {
-      if (b.completedTasks !== a.completedTasks) {
-        return b.completedTasks - a.completedTasks;
-      }
-      return a.totalHints - b.totalHints;
-    });
+      
+      // Process old structure
+      const hintsPerUser = {}; // Track max hints per user
+      progress.forEach(doc => {
+        const data = doc.data();
+        if (data.completed && userMap[data.userId]) {
+          userMap[data.userId].completedTasks++;
+          // Use MAX hints value instead of summing
+          hintsPerUser[data.userId] = Math.max(
+            hintsPerUser[data.userId] || 0,
+            data.hintsUsed || 0
+          );
+        }
+      });
+      
+      // Apply the max hints to each user
+      Object.keys(hintsPerUser).forEach(userId => {
+        if (userMap[userId]) {
+          userMap[userId].totalHints = hintsPerUser[userId];
+        }
+      });
+      
+      return Object.values(userMap).sort((a, b) => {
+        if (b.completedTasks !== a.completedTasks) {
+          return b.completedTasks - a.completedTasks;
+        }
+        return a.totalHints - b.totalHints;
+      });
+    } else {
+      // NEW STRUCTURE
+      console.log('Using new userProgress structure');
+      
+      const progressMap = {};
+      userProgress.forEach(doc => {
+        progressMap[doc.id] = doc.data();
+      });
+      
+      const leaderboard = [];
+      users.forEach(doc => {
+        const userData = doc.data();
+        const progress = progressMap[doc.id] || {};
+        
+        leaderboard.push({
+          id: doc.id,
+          ...userData,
+          completedTasks: (progress.completedTasks || []).length,
+          totalHints: progress.totalHints || 0
+        });
+      });
+      
+      return leaderboard.sort((a, b) => {
+        if (b.completedTasks !== a.completedTasks) {
+          return b.completedTasks - a.completedTasks;
+        }
+        return a.totalHints - b.totalHints;
+      });
+    }
   } catch (error) {
     console.error('Error loading leaderboard:', error);
     return [];
   }
 }
+
+// Optional: Migration function to convert old data to new structure
+async function migrateProgressData() {
+  try {
+    console.log('Starting progress data migration...');
+    
+    const users = await db.collection('users').get();
+    const oldProgress = await db.collection('progress').get();
+    
+    // Group old progress by user
+    const userProgressMap = {};
+    oldProgress.forEach(doc => {
+      const data = doc.data();
+      if (!userProgressMap[data.userId]) {
+        userProgressMap[data.userId] = {
+          completedTasks: [],
+          tasks: {},
+          maxHints: 0
+        };
+      }
+      
+      if (data.completed) {
+        userProgressMap[data.userId].completedTasks.push(data.taskId);
+        userProgressMap[data.userId].tasks[data.taskId] = {
+          completed: true,
+          attempts: data.attempts || 1,
+          completedAt: data.timestamp
+        };
+        userProgressMap[data.userId].maxHints = Math.max(
+          userProgressMap[data.userId].maxHints,
+          data.hintsUsed || 0
+        );
+      }
+    });
+    
+    // Write to new structure
+    for (const [userId, progressData] of Object.entries(userProgressMap)) {
+      await db.collection('userProgress').doc(userId).set({
+        userId: userId,
+        totalHints: progressData.maxHints,
+        completedTasks: progressData.completedTasks,
+        tasks: progressData.tasks,
+        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      console.log(`Migrated user ${userId}`);
+    }
+    
+    console.log('Migration complete!');
+  } catch (error) {
+    console.error('Migration error:', error);
+  }
+}
+// To run migration, uncomment the next line and refresh once:
+// migrateProgressData();
 
 // Login functionality
 document.addEventListener('DOMContentLoaded', () => {
@@ -2324,6 +2423,9 @@ console.log(`
   ║                                   ║
   ║   Happy investigating! 🔍         ║
   ╚═══════════════════════════════════╝
+  
+  Note: If you want to migrate old progress data to the new structure,
+  run migrateProgressData() in the console.
 `);
 
 </script>
