@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="description" content="Interactive OSINT Challenge - Test your open source intelligence skills">
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://Lewgys--aa56c8f844a711f0b0d776b3cceeab13.web.val.run;"><title>OSINT Challenge</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; script-src 'self' 'unsafe-inline' https://www.gstatic.com https://*.firebaseio.com https://*.googleapis.com; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https://*.firebaseio.com https://*.googleapis.com wss://*.firebaseio.com https://Lewgys--aa56c8f844a711f0b0d776b3cceeab13.web.val.run;">
+<title>OSINT Challenge</title>
 <style>
   * {
     box-sizing: border-box;
@@ -1079,7 +1080,8 @@ const CONFIG = {
   HASH_ROUNDS: 1000,
   FIREWORKS_PARTICLES: 120,
   ANIMATION_DURATION: 5000,
-  STORAGE_KEY: 'osint_challenge_progress'
+  STORAGE_KEY: 'osint_challenge_progress',
+  VAL_TOWN_API: 'https://Lewgys--aa56c8f844a711f0b0d776b3cceeab13.web.val.run'
 };
 
 // Session storage key for user persistence
@@ -1140,26 +1142,12 @@ let taskStartTimes = {}; // Track when each task was started
 let totalWrongAnswers = 0; // Track wrong answers
 let gameInstance = null; // Store the game instance globally
 
-// Enhanced SHA-256 hashing with salt
-async function sha256(str, salt = 'osint2024') {
-  try {
-    const encoder = new TextEncoder();
-    const data = encoder.encode((str.toLowerCase().trim() + salt));
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch (error) {
-    console.error('Hashing failed:', error);
-    return null;
-  }
-}
-
 // Input sanitization
 function sanitizeInput(input) {
   return input.trim().replace(/[<>]/g, '');
 }
 
-// Enhanced tasks configuration with hints per question
+// Tasks configuration WITHOUT ANSWERS
 const tasks = [
   {
     id: 'task1',
@@ -1168,7 +1156,6 @@ const tasks = [
     questions: [
       'What username does the attacker go by? (Click <a href="https://lewgys.github.io/The_OSINT_Gauntlet/images/pwnedletter.svg" data-original-path="/Users/beansbently/Desktop/Screenshots/pwned_note.png" data-uploaded-by="beansbently" target="_blank" rel="noopener noreferrer">here</a> to view the tip-off image.)'
     ],
-    answers: ['beansbently'],
     keys: 1,
     hints: [
       ['No hints on Task 1 nice try lol', 'Nice try, still no hints on Task 1...Unless you get it wrong again', 'I lied no Hints :)']
@@ -1182,7 +1169,6 @@ const tasks = [
       'What is the full email address of the attacker?',
       'What is the attacker\'s full real name?'
     ],
-    answers: ['beansbently1337@gmail.com', 'elliot alderson'],
     keys: 2,
     hints: [
       ['Try searching the username on different platforms', 'Look for profile information on professional sites', 'GitHub'],
@@ -1199,7 +1185,6 @@ const tasks = [
       'What mining pool did the attacker receive crypto from on January 23rd, 2021?',
       'What other cryptocurrency did the attacker exchange with?'
     ],
-    answers: ['eth', '0xa102397dbeebefd8cd2f73a89122fcdb53abb6ef', 'ethermine', 'tether'],
     keys: 4,
     hints: [
       ['Look for cryptocurrency mentions in profiles', 'Check for wallet address files', 'ETH is a common cryptocurrency'],
@@ -1216,7 +1201,6 @@ const tasks = [
       'What is the attacker\'s current Twitter (X) handle?',
       'At what company was the attacker last employed at?'
     ],
-    answers: ['beansbentlyel', 'BEANS4U'],
     keys: 2,
     hints: [
       ['Try variations of known usernames', 'Check for similar handles', 'No More Hints :)'],
@@ -1231,7 +1215,6 @@ const tasks = [
       'What airport is closest to the location where the attacker shared a photo prior to getting on their flight? (Airport code)',
       'What airport is the attacker having a layover at? (Airport code)'
     ],
-    answers: ['dca', 'dxb'],
     keys: 2,
     hints: [
       ['Look for landmarks in photos', 'Reverse Image Search is a good tool', 'No More Hints?'],
@@ -1246,7 +1229,6 @@ const tasks = [
       'What is the mystery flag?',
       'What building does the attacker live in?'
     ],
-    answers: ['reconsile-object-heir-coal', 'stormveil castle'],
     keys: 2,
     hiddenUntil: 'task5',
     hints: [
@@ -1689,60 +1671,6 @@ async function loadLeaderboard() {
     return [];
   }
 }
-
-// Optional: Migration function to convert old data to new structure
-async function migrateProgressData() {
-  try {
-    console.log('Starting progress data migration...');
-    
-    const users = await db.collection('users').get();
-    const oldProgress = await db.collection('progress').get();
-    
-    // Group old progress by user
-    const userProgressMap = {};
-    oldProgress.forEach(doc => {
-      const data = doc.data();
-      if (!userProgressMap[data.userId]) {
-        userProgressMap[data.userId] = {
-          completedTasks: [],
-          tasks: {},
-          maxHints: 0
-        };
-      }
-      
-      if (data.completed) {
-        userProgressMap[data.userId].completedTasks.push(data.taskId);
-        userProgressMap[data.userId].tasks[data.taskId] = {
-          completed: true,
-          attempts: data.attempts || 1,
-          completedAt: data.timestamp
-        };
-        userProgressMap[data.userId].maxHints = Math.max(
-          userProgressMap[data.userId].maxHints,
-          data.hintsUsed || 0
-        );
-      }
-    });
-    
-    // Write to new structure
-    for (const [userId, progressData] of Object.entries(userProgressMap)) {
-      await db.collection('userProgress').doc(userId).set({
-        userId: userId,
-        totalHints: progressData.maxHints,
-        completedTasks: progressData.completedTasks,
-        tasks: progressData.tasks,
-        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log(`Migrated user ${userId}`);
-    }
-    
-    console.log('Migration complete!');
-  } catch (error) {
-    console.error('Migration error:', error);
-  }
-}
-// To run migration, uncomment the next line and refresh once:
-// migrateProgressData();
 
 // Login functionality
 document.addEventListener('DOMContentLoaded', () => {
@@ -2211,8 +2139,23 @@ class OSINTChallenge {
     submitBtn.textContent = '';
 
     try {
-      const results = await this.validateAnswersIndividually(task, answers);
-      const allCorrect = results.every(r => r);
+      // Call Val.town API for validation
+      const response = await fetch(CONFIG.VAL_TOWN_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          taskId: task.id, 
+          answers: answers,
+          userId: currentUser?.id || 'anonymous'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Validation failed');
+      }
+
+      const result = await response.json();
+      const allCorrect = result.allCorrect;
       
       if (allCorrect) {
         if (this.completedTasks[task.id]) {
@@ -2253,7 +2196,7 @@ class OSINTChallenge {
         }
       } else {
         // Increment attempt counts for incorrect questions
-        results.forEach((correct, index) => {
+        result.results.forEach((correct, index) => {
           if (!correct) {
             const questionKey = `${task.id}_q${index}`;
             this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
@@ -2262,7 +2205,7 @@ class OSINTChallenge {
         
         this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
         
-        const incorrectCount = results.filter(r => !r).length;
+        const incorrectCount = result.results.filter(r => !r).length;
         this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
         
         // Track wrong answers for achievements
@@ -2278,18 +2221,6 @@ class OSINTChallenge {
         submitBtn.textContent = 'Submit';
       }, 1000);
     }
-  }
-
-  async validateAnswersIndividually(task, userAnswers) {
-    if (userAnswers.length !== task.answers.length) return Array(task.answers.length).fill(false);
-
-    const results = [];
-    for (let i = 0; i < userAnswers.length; i++) {
-      const userHash = await sha256(userAnswers[i]);
-      const correctHash = await sha256(task.answers[i]);
-      results.push(userHash === correctHash);
-    }
-    return results;
   }
 
   showFeedback(feedbackEl, message, type) {
@@ -2422,9 +2353,6 @@ console.log(`
   ║                                   ║
   ║   Happy investigating! 🔍         ║
   ╚═══════════════════════════════════╝
-  
-  Note: If you want to migrate old progress data to the new structure,
-  run migrateProgressData() in the console.
 `);
 
 </script>
