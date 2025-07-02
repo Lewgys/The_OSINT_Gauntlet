@@ -975,7 +975,7 @@
 <!-- Login/Registration Modal -->
 <div class="modal active" id="loginModal">
   <div class="modal-content">
-    <h2 class="modal-title">Welcome to the OSINT Gauntlet!</h2>
+    <h2 class="modal-title">Welcome to the OSINT Gauntlet</h2>
     <form id="loginForm">
       <div class="form-group">
         <label for="userName">Your Name</label>
@@ -1592,7 +1592,7 @@ async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   }
 }
 
-// FIXED: Updated leaderboard to work with both old and new structures
+// FIXED: Updated leaderboard to hide Task 6 count
 async function loadLeaderboard() {
   try {
     const users = await db.collection('users').get();
@@ -1750,6 +1750,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
+    // Determine if current user has unlocked Task 6
+    const currentUserHasUnlockedTask6 = currentUser && gameInstance && gameInstance.completedTasks['task5'];
+    const displayTotal = currentUserHasUnlockedTask6 ? 6 : 5;
+    
     let html = `
       <table class="leaderboard-table">
         <thead>
@@ -1766,12 +1770,16 @@ document.addEventListener('DOMContentLoaded', () => {
     
     leaderboard.forEach((user, index) => {
       const isCurrentUser = currentUser && user.id === currentUser.id;
+      
+      // Cap displayed completed tasks at the visible total
+      const displayedCompleted = Math.min(user.completedTasks, displayTotal);
+      
       html += `
         <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
           <td>${index + 1}</td>
           <td>${user.name}${isCurrentUser ? ' (You)' : ''}</td>
           <td>${user.team || 'Solo'}</td>
-          <td>${user.completedTasks}/6</td>
+          <td>${displayedCompleted}/${displayTotal}</td>
           <td>${user.totalHints}</td>
         </tr>
       `;
