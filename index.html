@@ -1142,6 +1142,11 @@ let taskStartTimes = {}; // Track when each task was started
 let totalWrongAnswers = 0; // Track wrong answers
 let gameInstance = null; // Store the game instance globally
 
+// Real-time leaderboard variables
+let leaderboardListener = null;
+let leaderboardData = new Map();
+let isLeaderboardInitialized = false;
+
 // Input sanitisation
 function sanitizeInput(input) {
   return input.trim().replace(/[<>]/g, '');
@@ -1304,7 +1309,7 @@ function generateSessionId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// Achievement Management - Fixed version
+// Achievement Management - Simplified for Firebase only
 async function unlockAchievement(achievementId, userId, userName, teamName) {
   try {
     console.log('Attempting to unlock achievement:', achievementId, 'for user:', userName, 'with ID:', userId);
@@ -1332,7 +1337,7 @@ async function unlockAchievement(achievementId, userId, userName, teamName) {
 
     console.log('Awarding achievement:', achievementId);
     
-    // Award the achievement with proper timestamp
+    // Save to Firebase only
     await db.collection('achievements').add({
       userId: userId,
       userName: userName,
@@ -1350,33 +1355,105 @@ async function unlockAchievement(achievementId, userId, userName, teamName) {
   }
 }
 
-// Real-time achievements listener - Fixed version
+// OPTIMIZED achievements listener - changed from 10 seconds to 2 minutes
 function startAchievementsListener() {
   const achievementsList = document.getElementById('achievementsList');
+  console.log('Starting optimized Firebase achievements listener...');
   
-  console.log('Starting achievements listener...');
+  // Check if we have cached achievements from recent session
+  const CACHE_KEY = 'osint_achievements_cache';
+  const CACHE_DURATION = 15 * 60 * 1000; // Increased to 15 minutes
   
-  achievementsListener = db.collection('achievements')
-    .orderBy('timestamp', 'desc')
-    .limit(20)
-    .onSnapshot((snapshot) => {
-      console.log('Achievements snapshot received, changes:', snapshot.docChanges().length);
-      
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const achievement = change.doc.data();
-          const docId = change.doc.id;
-          console.log('New achievement added:', achievement);
-          
-          // Add the document ID to the achievement data
-          achievement.docId = docId;
-          
+  // Try to load from cache first
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    try {
+      const { achievements, timestamp } = JSON.parse(cached);
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        // Use cached achievements
+        achievementsList.innerHTML = '';
+        achievements.forEach(achievement => {
           displayAchievement(achievement, achievementsList);
-        }
+        });
+      }
+    } catch (e) {
+      // Invalid cache, ignore
+    }
+  }
+  
+  // Load initial achievements (limited reads)
+  let lastTimestamp = null;
+  db.collection('achievements')
+    .orderBy('timestamp', 'desc')
+    .limit(10)
+    .get()
+    .then(snapshot => {
+      const achievements = [];
+      achievementsList.innerHTML = '';
+      
+      snapshot.forEach(doc => {
+        const achievement = doc.data();
+        achievement.docId = doc.id;
+        achievements.push(achievement);
+        displayAchievement(achievement, achievementsList);
       });
-    }, (error) => {
-      console.error('Error in achievements listener:', error);
+      
+      // Cache the achievements
+      localStorage.setItem(CACHE_KEY, JSON.stringify({
+        achievements: achievements,
+        timestamp: Date.now()
+      }));
+      
+      if (!snapshot.empty) {
+        lastTimestamp = snapshot.docs[0].data().timestamp;
+      }
+    })
+    .catch(error => {
+      console.error('Error loading initial achievements:', error);
     });
+  
+  // Poll for new achievements only - CHANGED TO 2 MINUTES
+  setInterval(() => {
+    if (!lastTimestamp) return;
+    
+    db.collection('achievements')
+      .where('timestamp', '>', lastTimestamp)
+      .orderBy('timestamp', 'desc')
+      .limit(5)
+      .get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          // Update lastTimestamp
+          lastTimestamp = snapshot.docs[0].data().timestamp;
+          
+          // Display new achievements
+          snapshot.forEach(doc => {
+            const achievement = doc.data();
+            achievement.docId = doc.id;
+            displayAchievement(achievement, achievementsList);
+          });
+          
+          // Update cache
+          const allAchievements = [];
+          achievementsList.querySelectorAll('[data-doc-id]').forEach((el, index) => {
+            if (index < 20) { // Keep only recent 20
+              allAchievements.push({
+                docId: el.getAttribute('data-doc-id'),
+                // Store other data if needed
+              });
+            }
+          });
+          
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            achievements: allAchievements,
+            timestamp: Date.now()
+          }));
+        }
+      })
+      .catch(error => {
+        console.error('Error polling achievements:', error);
+      });
+  }, 120000); // Changed to 120000ms (2 minutes)
 }
 
 // Fixed displayAchievement function
@@ -1400,7 +1477,7 @@ function displayAchievement(achievement, container) {
   }
   
   // Add special styling for gold achievements
-  if (achievement.achievementId === 'gauntlet_complete') {
+  if (achievement.achievementId === 'gauntlet_complete' || achievement.special === 'gold') {
     achievementEl.classList.add('gold');
   }
   
@@ -1592,86 +1669,152 @@ async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   }
 }
 
-// FIXED: Updated leaderboard to hide Task 6 count
-async function loadLeaderboard() {
+// NEW REAL-TIME LEADERBOARD FUNCTIONS
+function initializeLeaderboard() {
+  if (isLeaderboardInitialized) return;
+  isLeaderboardInitialized = true;
+  
+  console.log('Initializing real-time leaderboard...');
+  
+  // Listen to user progress changes only
+  leaderboardListener = db.collection('userProgress')
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const userId = change.doc.id;
+        const data = change.doc.data();
+        
+        if (change.type === 'added' || change.type === 'modified') {
+          // Update our local data
+          if (!leaderboardData.has(userId)) {
+            // Need to fetch user info once
+            db.collection('users').doc(userId).get().then(userDoc => {
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                leaderboardData.set(userId, {
+                  id: userId,
+                  name: userData.name,
+                  team: userData.team || 'Solo',
+                  completedTasks: (data.completedTasks || []).length,
+                  totalHints: data.totalHints || 0,
+                  startTime: userData.startTime
+                });
+                updateLeaderboardDisplay();
+              }
+            });
+          } else {
+            // Just update progress data
+            const existing = leaderboardData.get(userId);
+            existing.completedTasks = (data.completedTasks || []).length;
+            existing.totalHints = data.totalHints || 0;
+            updateLeaderboardDisplay();
+          }
+        }
+      });
+    });
+  
+  // Initial load of all users (one-time cost)
+  loadInitialLeaderboardData();
+}
+
+async function loadInitialLeaderboardData() {
   try {
+    // Load all users once
     const users = await db.collection('users').get();
-    
-    // Try to get new userProgress collection
     const userProgress = await db.collection('userProgress').get();
     
-    // If no new structure data, fall back to old structure
-    if (userProgress.empty) {
-      console.log('No userProgress data found, using old progress structure');
+    // Build progress map
+    const progressMap = new Map();
+    userProgress.forEach(doc => {
+      progressMap.set(doc.id, doc.data());
+    });
+    
+    // Populate leaderboard data
+    users.forEach(doc => {
+      const userData = doc.data();
+      const progress = progressMap.get(doc.id) || {};
       
-      // OLD STRUCTURE SUPPORT
-      const progress = await db.collection('progress').get();
-      
-      const userMap = {};
-      users.forEach(doc => {
-        userMap[doc.id] = { id: doc.id, ...doc.data(), completedTasks: 0, totalHints: 0 };
+      leaderboardData.set(doc.id, {
+        id: doc.id,
+        name: userData.name,
+        team: userData.team || 'Solo',
+        completedTasks: (progress.completedTasks || []).length,
+        totalHints: progress.totalHints || 0,
+        startTime: userData.startTime
       });
-      
-      // Process old structure
-      const hintsPerUser = {}; // Track max hints per user
-      progress.forEach(doc => {
-        const data = doc.data();
-        if (data.completed && userMap[data.userId]) {
-          userMap[data.userId].completedTasks++;
-          // Use MAX hints value instead of summing
-          hintsPerUser[data.userId] = Math.max(
-            hintsPerUser[data.userId] || 0,
-            data.hintsUsed || 0
-          );
-        }
-      });
-      
-      // Apply the max hints to each user
-      Object.keys(hintsPerUser).forEach(userId => {
-        if (userMap[userId]) {
-          userMap[userId].totalHints = hintsPerUser[userId];
-        }
-      });
-      
-      return Object.values(userMap).sort((a, b) => {
-        if (b.completedTasks !== a.completedTasks) {
-          return b.completedTasks - a.completedTasks;
-        }
-        return a.totalHints - b.totalHints;
-      });
-    } else {
-      // NEW STRUCTURE
-      console.log('Using new userProgress structure');
-      
-      const progressMap = {};
-      userProgress.forEach(doc => {
-        progressMap[doc.id] = doc.data();
-      });
-      
-      const leaderboard = [];
-      users.forEach(doc => {
-        const userData = doc.data();
-        const progress = progressMap[doc.id] || {};
-        
-        leaderboard.push({
-          id: doc.id,
-          ...userData,
-          completedTasks: (progress.completedTasks || []).length,
-          totalHints: progress.totalHints || 0
-        });
-      });
-      
-      return leaderboard.sort((a, b) => {
-        if (b.completedTasks !== a.completedTasks) {
-          return b.completedTasks - a.completedTasks;
-        }
-        return a.totalHints - b.totalHints;
-      });
-    }
+    });
+    
+    updateLeaderboardDisplay();
   } catch (error) {
-    console.error('Error loading leaderboard:', error);
-    return [];
+    console.error('Error loading initial data:', error);
   }
+}
+
+function updateLeaderboardDisplay() {
+  // Only update if modal is open
+  const dashboardModal = document.getElementById('dashboardModal');
+  if (!dashboardModal.classList.contains('active')) return;
+  
+  // Convert map to sorted array
+  const sortedLeaderboard = Array.from(leaderboardData.values()).sort((a, b) => {
+    if (b.completedTasks !== a.completedTasks) {
+      return b.completedTasks - a.completedTasks;
+    }
+    if (a.totalHints !== b.totalHints) {
+      return a.totalHints - b.totalHints;
+    }
+    return a.startTime - b.startTime;
+  });
+  
+  // Update DOM
+  const leaderboardContent = document.getElementById('leaderboardContent');
+  const currentUserHasUnlockedTask6 = currentUser && gameInstance && gameInstance.completedTasks['task5'];
+  const displayTotal = currentUserHasUnlockedTask6 ? 6 : 5;
+  
+  let html = `
+    <div style="text-align: right; margin-bottom: 1rem; color: #666;">
+      🔴 Live Updates Enabled
+    </div>
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Team</th>
+          <th>Tasks Completed</th>
+          <th>Hints Used</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  sortedLeaderboard.forEach((user, index) => {
+    const isCurrentUser = currentUser && user.id === currentUser.id;
+    const displayedCompleted = Math.min(user.completedTasks, displayTotal);
+    
+    html += `
+      <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
+        <td>${index + 1}</td>
+        <td>${user.name}${isCurrentUser ? ' (You)' : ''}</td>
+        <td>${user.team}</td>
+        <td>${displayedCompleted}/${displayTotal}</td>
+        <td>${user.totalHints}</td>
+      </tr>
+    `;
+  });
+  
+  html += '</tbody></table>';
+  leaderboardContent.innerHTML = html;
+}
+
+// REPLACED OLD loadLeaderboard function with real-time version
+async function loadLeaderboard() {
+  // This function is kept for compatibility but now just returns the real-time data
+  return Array.from(leaderboardData.values()).sort((a, b) => {
+    if (b.completedTasks !== a.completedTasks) {
+      return b.completedTasks - a.completedTasks;
+    }
+    return a.totalHints - b.totalHints;
+  });
 }
 
 // Login functionality
@@ -1737,56 +1880,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   
-  // Dashboard functionality
-  dashboardBtn.addEventListener('click', async () => {
+  // UPDATED Dashboard functionality with real-time listener
+  dashboardBtn.addEventListener('click', () => {
     dashboardModal.classList.add('active');
-    const leaderboardContent = document.getElementById('leaderboardContent');
-    leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">Loading leaderboard...</p>';
     
-    const leaderboard = await loadLeaderboard();
-    
-    if (leaderboard.length === 0) {
-      leaderboardContent.innerHTML = '<p style="text-align: center; color: #999;">No progress data yet.</p>';
-      return;
+    // Initialize listener on first open
+    if (!isLeaderboardInitialized) {
+      initializeLeaderboard();
+    } else {
+      // Just update display with existing data
+      updateLeaderboardDisplay();
     }
-    
-    // Determine if current user has unlocked Task 6
-    const currentUserHasUnlockedTask6 = currentUser && gameInstance && gameInstance.completedTasks['task5'];
-    const displayTotal = currentUserHasUnlockedTask6 ? 6 : 5;
-    
-    let html = `
-      <table class="leaderboard-table">
-        <thead>
-          <tr>
-            <th>Rank</th>
-            <th>Name</th>
-            <th>Team</th>
-            <th>Tasks Completed</th>
-            <th>Hints Used</th>
-          </tr>
-        </thead>
-        <tbody>
-    `;
-    
-    leaderboard.forEach((user, index) => {
-      const isCurrentUser = currentUser && user.id === currentUser.id;
-      
-      // Cap displayed completed tasks at the visible total
-      const displayedCompleted = Math.min(user.completedTasks, displayTotal);
-      
-      html += `
-        <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
-          <td>${index + 1}</td>
-          <td>${user.name}${isCurrentUser ? ' (You)' : ''}</td>
-          <td>${user.team || 'Solo'}</td>
-          <td>${displayedCompleted}/${displayTotal}</td>
-          <td>${user.totalHints}</td>
-        </tr>
-      `;
-    });
-    
-    html += '</tbody></table>';
-    leaderboardContent.innerHTML = html;
   });
   
   closeDashboard.addEventListener('click', () => {
@@ -2330,6 +2434,13 @@ class OSINTChallenge {
     }, CONFIG.ANIMATION_DURATION);
   }
 }
+
+// Clean up listeners on page unload
+window.addEventListener('beforeunload', () => {
+  if (leaderboardListener) {
+    leaderboardListener();
+  }
+});
 
 window.addEventListener('resize', () => {
   const canvas = document.getElementById('fireworks');
