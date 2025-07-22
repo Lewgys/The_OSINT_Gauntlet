@@ -25,6 +25,123 @@
     gap: 2rem;
   }
 
+  /* Countdown Timer Styles */
+  .countdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .countdown-overlay.active {
+    display: flex;
+  }
+
+  .countdown-container {
+    text-align: center;
+    max-width: 800px;
+    width: 90%;
+    padding: 2rem;
+  }
+
+  .countdown-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+
+  .countdown-subtitle {
+    color: #999;
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+  }
+
+  .countdown-timer {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .countdown-unit {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 1.5rem;
+    min-width: 120px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .countdown-number {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #b0d351;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .countdown-label {
+    color: #999;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .countdown-user-info {
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    margin-bottom: 2rem;
+    color: #b0d351;
+    font-size: 1.1rem;
+  }
+
+  .countdown-briefing-btn {
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+  }
+
+  .countdown-briefing-btn:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+
+  .countdown-starting {
+    font-size: 4rem;
+    color: #b0d351;
+    font-weight: 700;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
   /* Global Achievements Panel */
   .achievements-panel {
     background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
@@ -928,6 +1045,23 @@
       padding: 0.6rem 1rem;
       font-size: 0.8rem;
     }
+
+    .countdown-title {
+      font-size: 2rem;
+    }
+
+    .countdown-timer {
+      gap: 1rem;
+    }
+
+    .countdown-unit {
+      min-width: 80px;
+      padding: 1rem;
+    }
+
+    .countdown-number {
+      font-size: 2.5rem;
+    }
   }
   
   @media (max-width: 480px) {
@@ -954,10 +1088,63 @@
       padding: 0.3rem 0.6rem;
       font-size: 0.8rem;
     }
+
+    .countdown-title {
+      font-size: 1.5rem;
+    }
+
+    .countdown-subtitle {
+      font-size: 1rem;
+    }
+
+    .countdown-number {
+      font-size: 2rem;
+    }
+
+    .countdown-label {
+      font-size: 0.8rem;
+    }
   }
 </style>
 </head>
 <body>
+
+<!-- Countdown Timer Overlay -->
+<div class="countdown-overlay" id="countdownOverlay">
+  <div class="countdown-container">
+    <h1 class="countdown-title">The OSINT Gauntlet</h1>
+    <p class="countdown-subtitle">Challenge begins in:</p>
+    
+    <div class="countdown-user-info" id="countdownUserInfo" style="display: none;">
+      <span id="countdownUserDisplay"></span>
+    </div>
+    
+    <div class="countdown-timer" id="countdownTimer">
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countDays">00</div>
+        <div class="countdown-label">Days</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countHours">00</div>
+        <div class="countdown-label">Hours</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countMinutes">00</div>
+        <div class="countdown-label">Minutes</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countSeconds">00</div>
+        <div class="countdown-label">Seconds</div>
+      </div>
+    </div>
+    
+    <div id="countdownStarting" style="display: none;">
+      <p class="countdown-starting">STARTING NOW!</p>
+    </div>
+    
+    <button class="countdown-briefing-btn" id="countdownBriefingBtn">📋 View Briefing</button>
+  </div>
+</div>
 
 <!-- Global Achievements Panel -->
 <div class="achievements-panel">
@@ -985,7 +1172,7 @@
         <label for="userTeam">Team Name (Optional)</label>
         <input type="text" id="userTeam" autocomplete="organization">
       </div>
-      <button type="submit" class="form-submit">Start Challenge</button>
+      <button type="submit" class="form-submit">Register for Challenge</button>
       <div class="form-error" id="loginError"></div>
     </form>
   </div>
@@ -1086,9 +1273,13 @@ const CONFIG = {
 
 // Session storage key for user persistence
 const SESSION_STORAGE_KEY = 'osint_challenge_user_session';
+const COUNTDOWN_STORAGE_KEY = 'osint_challenge_registered_before_start';
 
 // Current user state
 let currentUser = null;
+let countdownInterval = null;
+let challengeStarted = false;
+let challengeStartTime = null;
 
 // Global achievements system
 const ACHIEVEMENTS = {
@@ -1146,6 +1337,158 @@ let gameInstance = null; // Store the game instance globally
 let leaderboardListener = null;
 let leaderboardData = new Map();
 let isLeaderboardInitialized = false;
+
+// Check challenge status from server
+async function checkChallengeStatus() {
+  try {
+    const response = await fetch(CONFIG.VAL_TOWN_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'checkStatus' })
+    });
+    
+    const data = await response.json();
+    
+    if (data.started) {
+      challengeStarted = true;
+      return { started: true };
+    } else {
+      challengeStartTime = new Date(data.startsAt);
+      return { 
+        started: false, 
+        startsAt: challengeStartTime,
+        timeRemaining: data.timeRemaining 
+      };
+    }
+  } catch (error) {
+    console.error('Error checking status:', error);
+    // Fallback behavior - assume challenge hasn't started
+    return { started: false };
+  }
+}
+
+// Countdown Timer Functions
+function updateCountdown() {
+  if (!challengeStartTime) return;
+  
+  const now = new Date();
+  const diff = challengeStartTime - now;
+  
+  if (diff <= 0) {
+    // Challenge has started!
+    clearInterval(countdownInterval);
+    startChallenge();
+    return;
+  }
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  document.getElementById('countDays').textContent = String(days).padStart(2, '0');
+  document.getElementById('countHours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('countMinutes').textContent = String(minutes).padStart(2, '0');
+  document.getElementById('countSeconds').textContent = String(seconds).padStart(2, '0');
+}
+
+function startChallenge() {
+  challengeStarted = true;
+  
+  // Show "STARTING NOW!" message
+  document.getElementById('countdownTimer').style.display = 'none';
+  document.getElementById('countdownStarting').style.display = 'block';
+  
+  // Wait 3 seconds then hide countdown overlay
+  setTimeout(() => {
+    document.getElementById('countdownOverlay').classList.remove('active');
+    
+    // Initialize the game if user is already registered
+    if (currentUser) {
+      initializeGame();
+    }
+  }, 3000);
+}
+
+function initializeGame() {
+  // Initialize the main challenge
+  gameInstance = new OSINTChallenge();
+  
+  // Start listening for achievements
+  startAchievementsListener();
+  
+  // Mark user as started for achievement tracking
+  checkAchievements('user_started');
+  
+  // Show dashboard button
+  document.getElementById('dashboardBtn').style.display = 'block';
+}
+
+// Modified Session management functions
+function loadUserSession() {
+  try {
+    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!savedSession) return null;
+    
+    const session = JSON.parse(savedSession);
+    
+    // Check if session is recent (within 24 hours)
+    const sessionAge = Date.now() - session.timestamp;
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+    
+    if (sessionAge > maxAge) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error loading session:', error);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+}
+
+function clearUserSession() {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  localStorage.removeItem(COUNTDOWN_STORAGE_KEY);
+  currentUser = null;
+}
+
+// Modified saveUserToFirebase to handle pre-registration
+async function saveUserToFirebase(name, team, isPreRegistration = false) {
+  try {
+    // Always create a new user entry (no checking for duplicates)
+    const userRef = await db.collection('users').add({
+      name: name,
+      team: team || 'Solo',
+      startTime: firebase.firestore.FieldValue.serverTimestamp(),
+      lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+      preRegistered: isPreRegistration
+    });
+    const userId = userRef.id;
+    
+    // Save session to localStorage with unique session ID
+    const userSession = {
+      id: userId,
+      name: name,
+      team: team || 'Solo',
+      timestamp: Date.now(),
+      sessionId: generateSessionId() // Add unique session identifier
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userSession));
+    
+    // If pre-registering, also save that info
+    if (isPreRegistration) {
+      localStorage.setItem(COUNTDOWN_STORAGE_KEY, 'true');
+    }
+    
+    return userId;
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return null;
+  }
+}
 
 // Input sanitisation
 function sanitizeInput(input) {
@@ -1244,65 +1587,6 @@ const tasks = [
     ]
   }
 ];
-
-// Session management functions
-function loadUserSession() {
-  try {
-    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
-    if (!savedSession) return null;
-    
-    const session = JSON.parse(savedSession);
-    
-    // Check if session is recent (within 24 hours)
-    const sessionAge = Date.now() - session.timestamp;
-    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
-    
-    if (sessionAge > maxAge) {
-      localStorage.removeItem(SESSION_STORAGE_KEY);
-      return null;
-    }
-    
-    return session;
-  } catch (error) {
-    console.error('Error loading session:', error);
-    localStorage.removeItem(SESSION_STORAGE_KEY);
-    return null;
-  }
-}
-
-function clearUserSession() {
-  localStorage.removeItem(SESSION_STORAGE_KEY);
-  currentUser = null;
-}
-
-// User Management
-async function saveUserToFirebase(name, team) {
-  try {
-    // Always create a new user entry (no checking for duplicates)
-    const userRef = await db.collection('users').add({
-      name: name,
-      team: team || 'Solo',
-      startTime: firebase.firestore.FieldValue.serverTimestamp(),
-      lastActive: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    const userId = userRef.id;
-    
-    // Save session to localStorage with unique session ID
-    const userSession = {
-      id: userId,
-      name: name,
-      team: team || 'Solo',
-      timestamp: Date.now(),
-      sessionId: generateSessionId() // Add unique session identifier
-    };
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userSession));
-    
-    return userId;
-  } catch (error) {
-    console.error('Error saving user:', error);
-    return null;
-  }
-}
 
 // Generate unique session ID
 function generateSessionId() {
@@ -1817,8 +2101,8 @@ async function loadLeaderboard() {
   });
 }
 
-// Login functionality
-document.addEventListener('DOMContentLoaded', () => {
+// Login functionality with countdown
+document.addEventListener('DOMContentLoaded', async () => {
   const loginForm = document.getElementById('loginForm');
   const loginModal = document.getElementById('loginModal');
   const userInfo = document.getElementById('userInfo');
@@ -1826,25 +2110,45 @@ document.addEventListener('DOMContentLoaded', () => {
   const dashboardBtn = document.getElementById('dashboardBtn');
   const dashboardModal = document.getElementById('dashboardModal');
   const closeDashboard = document.getElementById('closeDashboard');
+  const countdownOverlay = document.getElementById('countdownOverlay');
+  const countdownUserInfo = document.getElementById('countdownUserInfo');
+  const countdownUserDisplay = document.getElementById('countdownUserDisplay');
+  const countdownBriefingBtn = document.getElementById('countdownBriefingBtn');
   
-  // Check for existing session on page load
-  const existingSession = loadUserSession();
-  if (existingSession) {
-    // Restore user session
-    currentUser = existingSession;
-    loginModal.classList.remove('active');
-    userInfo.classList.add('active');
-    userDisplay.textContent = `${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
-    dashboardBtn.style.display = 'block';
-    
-    //Initialise the main challenge
-    gameInstance = new OSINTChallenge();
-    
-    // Start listening for achievements
-    startAchievementsListener();
-    
-    // Mark user as started for achievement tracking
-    checkAchievements('user_started');
+  // Check challenge status from server
+  const status = await checkChallengeStatus();
+  
+  if (status.started) {
+    // Challenge already started, proceed normally
+    const existingSession = loadUserSession();
+    if (existingSession) {
+      // Restore user session
+      currentUser = existingSession;
+      loginModal.classList.remove('active');
+      userInfo.classList.add('active');
+      userDisplay.textContent = `${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
+      
+      //Initialize the main challenge immediately
+      initializeGame();
+    }
+  } else {
+    // Challenge hasn't started yet
+    const existingSession = loadUserSession();
+    if (existingSession && localStorage.getItem(COUNTDOWN_STORAGE_KEY)) {
+      // User already registered before start
+      currentUser = existingSession;
+      loginModal.classList.remove('active');
+      
+      // Show countdown with user info
+      countdownOverlay.classList.add('active');
+      countdownUserInfo.style.display = 'block';
+      countdownUserDisplay.textContent = `Registered as: ${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
+      
+      // Start countdown
+      updateCountdown();
+      countdownInterval = setInterval(updateCountdown, 1000);
+    }
+    // Otherwise, show login modal as normal
   }
   
   loginForm.addEventListener('submit', async (e) => {
@@ -1858,26 +2162,46 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    const userId = await saveUserToFirebase(name, team);
+    // Check current status again
+    const currentStatus = await checkChallengeStatus();
+    const isPreRegistration = !currentStatus.started;
+    const userId = await saveUserToFirebase(name, team, isPreRegistration);
     
     if (userId) {
       currentUser = { id: userId, name, team };
       loginModal.classList.remove('active');
-      userInfo.classList.add('active');
-      userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
-      dashboardBtn.style.display = 'block';
       
-      //Initialise the main challenge
-      gameInstance = new OSINTChallenge();
-      
-      // Start listening for achievements
-      startAchievementsListener();
-      
-      // Mark user as started for achievement tracking
-      checkAchievements('user_started');
+      if (isPreRegistration) {
+        // Show countdown overlay
+        countdownOverlay.classList.add('active');
+        countdownUserInfo.style.display = 'block';
+        countdownUserDisplay.textContent = `Registered as: ${name}${team ? ` (${team})` : ''}`;
+        
+        // Start countdown
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+      } else {
+        // Challenge already started, proceed normally
+        userInfo.classList.add('active');
+        userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
+        
+        //Initialize the main challenge
+        initializeGame();
+      }
     } else {
       document.getElementById('loginError').textContent = 'Error starting challenge. Please try again.';
     }
+  });
+  
+  // Countdown briefing button - reuse existing briefing functionality
+  countdownBriefingBtn.addEventListener('click', () => {
+    const briefingDropdown = document.getElementById('briefingDropdown');
+    briefingDropdown.style.position = 'fixed';
+    briefingDropdown.style.top = '50%';
+    briefingDropdown.style.left = '50%';
+    briefingDropdown.style.transform = 'translate(-50%, -50%)';
+    briefingDropdown.style.display = 'block';
+    briefingDropdown.style.zIndex = '20001';
   });
   
   // UPDATED Dashboard functionality with real-time listener
@@ -1905,6 +2229,15 @@ document.addEventListener('DOMContentLoaded', () => {
   function toggleBriefing() {
     const isVisible = briefingDropdown.style.display === 'block';
     briefingDropdown.style.display = isVisible ? 'none' : 'block';
+    
+    // Reset position if it was moved for countdown
+    if (briefingDropdown.style.position === 'fixed') {
+      briefingDropdown.style.position = '';
+      briefingDropdown.style.top = '';
+      briefingDropdown.style.left = '';
+      briefingDropdown.style.transform = '';
+      briefingDropdown.style.zIndex = '';
+    }
   }
 
   function closeBriefing() {
@@ -1916,7 +2249,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Close briefing when clicking outside
   document.addEventListener('click', (e) => {
-    if (!briefingBtn.contains(e.target) && !briefingDropdown.contains(e.target)) {
+    if (!briefingBtn.contains(e.target) && 
+        !briefingDropdown.contains(e.target) && 
+        !countdownBriefingBtn.contains(e.target)) {
       closeBriefing();
     }
   });
@@ -2264,6 +2599,13 @@ class OSINTChallenge {
         })
       });
 
+      if (response.status === 403) {
+        const data = await response.json();
+        this.showFeedback(feedbackP, 'Challenge has not started yet!', 'error');
+        console.log(`Challenge starts at: ${data.startsAt}`);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error('Validation failed');
       }
@@ -2439,6 +2781,9 @@ class OSINTChallenge {
 window.addEventListener('beforeunload', () => {
   if (leaderboardListener) {
     leaderboardListener();
+  }
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
   }
 });
 
