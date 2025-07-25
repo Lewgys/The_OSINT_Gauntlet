@@ -50,6 +50,8 @@
     max-width: 800px;
     width: 90%;
     padding: 2rem;
+    z-index: 10;
+    position: relative;
   }
 
   .countdown-title {
@@ -140,6 +142,114 @@
   @keyframes pulse {
     0%, 100% { transform: scale(1); opacity: 1; }
     50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
+  /* Lobby System Styles */
+  .lobby-participants {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .participant-bubble {
+    position: absolute;
+    background: rgba(176, 211, 81, 0.1);
+    border: 1px solid rgba(176, 211, 81, 0.3);
+    border-radius: 20px;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    color: #b0d351;
+    white-space: nowrap;
+    animation: float 20s infinite ease-in-out;
+    transition: all 0.5s ease;
+    pointer-events: auto;
+    cursor: default;
+    z-index: 5;
+  }
+
+  .participant-bubble:hover {
+    background: rgba(176, 211, 81, 0.2);
+    border-color: #b0d351;
+    transform: scale(1.1);
+    z-index: 10;
+  }
+
+  .participant-bubble.me {
+    background: rgba(176, 211, 81, 0.3);
+    border: 2px solid #b0d351;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
+  }
+
+  .participant-bubble .team {
+    font-size: 0.75rem;
+    color: #999;
+    margin-top: 0.2rem;
+  }
+
+  .participant-bubble.new {
+    animation: bubbleAppear 0.5s ease-out, float 20s infinite ease-in-out;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) translateX(0px); }
+    25% { transform: translateY(-20px) translateX(10px); }
+    50% { transform: translateY(10px) translateX(-10px); }
+    75% { transform: translateY(-10px) translateX(15px); }
+  }
+
+  @keyframes bubbleAppear {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .lobby-counter {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    color: #b0d351;
+    z-index: 100;
+  }
+
+  .lobby-counter span {
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Join ripple animation */
+  .join-ripple {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(176, 211, 81, 0.6) 0%, rgba(176, 211, 81, 0) 70%);
+    transform: translate(-50%, -50%) scale(0);
+    animation: rippleEffect 1.5s ease-out;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  @keyframes rippleEffect {
+    to {
+      transform: translate(-50%, -50%) scale(4);
+      opacity: 0;
+    }
   }
 
   /* Global Achievements Panel */
@@ -1062,6 +1172,16 @@
     .countdown-number {
       font-size: 2.5rem;
     }
+    
+    .participant-bubble {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.8rem;
+    }
+    
+    .lobby-counter {
+      font-size: 0.8rem;
+      bottom: 1rem;
+    }
   }
   
   @media (max-width: 480px) {
@@ -1143,6 +1263,12 @@
     </div>
     
     <button class="countdown-briefing-btn" id="countdownBriefingBtn">📋 View Briefing</button>
+  </div>
+  
+  <!-- Lobby System -->
+  <div class="lobby-participants" id="lobbyParticipants"></div>
+  <div class="lobby-counter" id="lobbyCounter" style="display: none;">
+    <span id="lobbyCount">0</span> participants waiting
   </div>
 </div>
 
@@ -1338,6 +1464,182 @@ let leaderboardListener = null;
 let leaderboardData = new Map();
 let isLeaderboardInitialized = false;
 
+// Lobby System
+let lobbySystem = null;
+
+class LobbySystem {
+  constructor() {
+    this.container = document.getElementById('lobbyParticipants');
+    this.counter = document.getElementById('lobbyCounter');
+    this.countEl = document.getElementById('lobbyCount');
+    this.participants = new Map();
+    this.listener = null;
+    this.positions = new Set();
+    this.gridSize = 100; // Grid size for positioning
+  }
+
+  start() {
+    if (!currentUser) return;
+    
+    console.log('Starting lobby system...');
+    
+    // Add current user to lobby
+    this.addCurrentUserToLobby();
+    
+    // Listen for other participants
+    this.listener = db.collection('lobby')
+      .where('active', '==', true)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const data = change.doc.data();
+          const userId = change.doc.id;
+          
+          if (change.type === 'added') {
+            this.addParticipant(userId, data);
+          } else if (change.type === 'removed') {
+            this.removeParticipant(userId);
+          }
+        });
+        
+        this.updateCounter();
+      });
+  }
+
+  async addCurrentUserToLobby() {
+    try {
+      await db.collection('lobby').doc(currentUser.id).set({
+        name: currentUser.name,
+        team: currentUser.team || 'Solo',
+        active: true,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error joining lobby:', error);
+    }
+  }
+
+  addParticipant(userId, data) {
+    if (this.participants.has(userId)) return;
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'participant-bubble new';
+    bubble.dataset.userId = userId;
+    
+    // Check if it's the current user
+    if (userId === currentUser?.id) {
+      bubble.classList.add('me');
+    }
+    
+    // Set content
+    bubble.innerHTML = `
+      ${data.name}
+      ${data.team !== 'Solo' ? `<div class="team">${data.team}</div>` : ''}
+    `;
+    
+    // Generate random position
+    const position = this.generateRandomPosition();
+    bubble.style.left = `${position.x}%`;
+    bubble.style.top = `${position.y}%`;
+    
+    // Add random animation delay
+    bubble.style.animationDelay = `${Math.random() * 20}s`;
+    
+    // Add join ripple effect
+    this.createJoinRipple(position.x, position.y);
+    
+    this.container.appendChild(bubble);
+    this.participants.set(userId, { element: bubble, data: data });
+    
+    // Remove 'new' class after animation
+    setTimeout(() => bubble.classList.remove('new'), 500);
+  }
+
+  createJoinRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'join-ripple';
+    ripple.style.left = `${x}%`;
+    ripple.style.top = `${y}%`;
+    
+    this.container.appendChild(ripple);
+    
+    // Remove ripple after animation
+    setTimeout(() => ripple.remove(), 1500);
+  }
+
+  removeParticipant(userId) {
+    const participant = this.participants.get(userId);
+    if (participant) {
+      participant.element.style.opacity = '0';
+      setTimeout(() => {
+        participant.element.remove();
+        this.participants.delete(userId);
+      }, 500);
+    }
+  }
+
+  generateRandomPosition() {
+    // Generate positions that avoid center where countdown is
+    let x, y;
+    const maxAttempts = 50;
+    let attempts = 0;
+    
+    do {
+      x = Math.random() * 90 + 5; // 5-95%
+      y = Math.random() * 85 + 5; // 5-90%
+      attempts++;
+      
+      // Avoid center area (where countdown is)
+      const centerX = 50;
+      const centerY = 50;
+      const minDistance = 25;
+      
+      const distance = Math.sqrt(
+        Math.pow(x - centerX, 2) + 
+        Math.pow(y - centerY, 2)
+      );
+      
+      if (distance > minDistance || attempts > maxAttempts) {
+        break;
+      }
+    } while (true);
+    
+    return { x, y };
+  }
+
+  updateCounter() {
+    const count = this.participants.size;
+    this.countEl.textContent = count;
+    
+    if (count > 0) {
+      this.counter.style.display = 'block';
+    } else {
+      this.counter.style.display = 'none';
+    }
+  }
+
+  async cleanup() {
+    // Remove current user from lobby
+    if (currentUser) {
+      try {
+        await db.collection('lobby').doc(currentUser.id).delete();
+      } catch (error) {
+        console.error('Error leaving lobby:', error);
+      }
+    }
+    
+    // Stop listener
+    if (this.listener) {
+      this.listener();
+      this.listener = null;
+    }
+    
+    // Clear participants
+    this.participants.clear();
+    this.container.innerHTML = '';
+    this.counter.style.display = 'none';
+  }
+}
+
 // Check challenge status from server
 async function checkChallengeStatus() {
   try {
@@ -1394,6 +1696,11 @@ function updateCountdown() {
 
 function startChallenge() {
   challengeStarted = true;
+  
+  // Cleanup lobby
+  if (lobbySystem) {
+    lobbySystem.cleanup();
+  }
   
   // Show "STARTING NOW!" message
   document.getElementById('countdownTimer').style.display = 'none';
@@ -2147,6 +2454,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       // Start countdown
       updateCountdown();
       countdownInterval = setInterval(updateCountdown, 1000);
+      
+      // Start lobby system
+      lobbySystem = new LobbySystem();
+      lobbySystem.start();
     }
     // Otherwise, show login modal as normal
   }
@@ -2180,6 +2491,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Start countdown
         updateCountdown();
         countdownInterval = setInterval(updateCountdown, 1000);
+        
+        // Start lobby system
+        lobbySystem = new LobbySystem();
+        lobbySystem.start();
       } else {
         // Challenge already started, proceed normally
         userInfo.classList.add('active');
@@ -2778,7 +3093,10 @@ class OSINTChallenge {
 }
 
 // Clean up listeners on page unload
-window.addEventListener('beforeunload', () => {
+window.addEventListener('beforeunload', async () => {
+  if (lobbySystem) {
+    await lobbySystem.cleanup();
+  }
   if (leaderboardListener) {
     leaderboardListener();
   }
