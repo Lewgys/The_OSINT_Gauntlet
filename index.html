@@ -1698,6 +1698,12 @@ const ACHIEVEMENTS = {
     title: "No Hint Hero",
     description: "Complete a Task with no Hints",
     icon: "🦸"
+  },
+   first_blood: {
+    title: "First Blood",
+    description: "First person to complete any task in the challenge",
+    icon: "🩸",
+    special: "red" // New special type for red styling
   }
 };
 
@@ -2160,7 +2166,7 @@ function generateSessionId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
-// Achievement Management - Simplified for Firebase only
+// 2. Replace your existing unlockAchievement function
 async function unlockAchievement(achievementId, userId, userName, teamName) {
   try {
     console.log('Attempting to unlock achievement:', achievementId, 'for user:', userName, 'with ID:', userId);
@@ -2175,20 +2181,37 @@ async function unlockAchievement(achievementId, userId, userName, teamName) {
       return;
     }
 
-    // Check if user already has this achievement
-    const existingQuery = await db.collection('achievements')
-      .where('userId', '==', userId)
-      .where('achievementId', '==', achievementId)
-      .get();
+    // Define single-use achievements that can only be earned once globally
+    const SINGLE_USE_ACHIEVEMENTS = ['first_blood'];
+    
+    // Check if this is a single-use achievement
+    if (SINGLE_USE_ACHIEVEMENTS.includes(achievementId)) {
+      // Check if ANYONE has this achievement already
+      const globalCheck = await db.collection('achievements')
+        .where('achievementId', '==', achievementId)
+        .limit(1)
+        .get();
+      
+      if (!globalCheck.empty) {
+        console.log('Single-use achievement already claimed:', achievementId);
+        return; // Someone already has this achievement
+      }
+    } else {
+      // For regular achievements, check if this specific user already has it
+      const existingQuery = await db.collection('achievements')
+        .where('userId', '==', userId)
+        .where('achievementId', '==', achievementId)
+        .get();
 
-    if (!existingQuery.empty) {
-      console.log('User already has this achievement:', achievementId);
-      return; // User already has this achievement
+      if (!existingQuery.empty) {
+        console.log('User already has this achievement:', achievementId);
+        return;
+      }
     }
 
     console.log('Awarding achievement:', achievementId);
     
-    // Save to Firebase only
+    // Save to Firebase
     await db.collection('achievements').add({
       userId: userId,
       userName: userName,
@@ -2197,6 +2220,7 @@ async function unlockAchievement(achievementId, userId, userName, teamName) {
       achievementTitle: ACHIEVEMENTS[achievementId].title,
       achievementDescription: ACHIEVEMENTS[achievementId].description,
       achievementIcon: ACHIEVEMENTS[achievementId].icon,
+      special: ACHIEVEMENTS[achievementId].special || null,
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
 
@@ -2270,7 +2294,7 @@ function startAchievementsListener() {
     });
 }
 
-// Enhanced display function with animation states
+// 3. Update your displayAchievement function to handle red achievements
 function displayAchievement(achievement, container, isNew = false) {
   // Check if this achievement already exists in the DOM
   if (achievement.docId && container.querySelector(`[data-doc-id="${achievement.docId}"]`)) {
@@ -2293,10 +2317,16 @@ function displayAchievement(achievement, container, isNew = false) {
   // Add special styling for gold achievements
   const isGoldAchievement = achievement.achievementId === 'gauntlet_complete' || 
                            achievement.achievementId === 'speedrun_hour' ||
-                           ACHIEVEMENTS[achievement.achievementId]?.special === 'gold';
+                           achievement.special === 'gold';
+  
+  // Add special styling for red achievements (First Blood)
+  const isRedAchievement = achievement.achievementId === 'first_blood' || 
+                          achievement.special === 'red';
   
   if (isGoldAchievement) {
     achievementEl.classList.add('gold');
+  } else if (isRedAchievement) {
+    achievementEl.classList.add('red');
   }
   
   // Get time ago
@@ -2329,12 +2359,17 @@ function displayAchievement(achievement, container, isNew = false) {
     }, 3000);
   }
 }
-
 // Show notification for own achievements
+// 5. Update showAchievementNotification to handle red achievements
 function showAchievementNotification(achievement) {
-  // Create a temporary notification element
   const notification = document.createElement('div');
   notification.className = 'achievement-notification';
+  
+  // Add red class if it's a red achievement
+  if (achievement.achievementId === 'first_blood' || achievement.special === 'red') {
+    notification.classList.add('red');
+  }
+  
   notification.innerHTML = `
     <div class="notification-icon">${achievement.achievementIcon}</div>
     <div class="notification-content">
@@ -2345,12 +2380,10 @@ function showAchievementNotification(achievement) {
   
   document.body.appendChild(notification);
   
-  // Trigger animation
   setTimeout(() => {
     notification.classList.add('show');
   }, 100);
   
-  // Remove after 5 seconds
   setTimeout(() => {
     notification.classList.remove('show');
     setTimeout(() => {
@@ -2438,7 +2471,52 @@ const additionalStyles = `
     margin-left: 0.5rem;
     animation: pulse 2s infinite;
   }
+  /* Red achievement styles for First Blood */
+  .achievement-item.red {
+    background: linear-gradient(135deg, rgba(220, 20, 20, 0.1) 0%, rgba(139, 0, 0, 0.1) 100%);
+    border: 2px solid #dc143c;
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.4);
+  }
 
+  .achievement-item.red .achievement-title {
+    color: #ff4444;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    font-weight: 700;
+  }
+
+  .achievement-item.red .achievement-icon {
+    text-shadow: 0 0 10px rgba(220, 20, 60, 0.8);
+    transform: scale(1.2);
+  }
+
+  .achievement-item.red.new {
+    animation: redAchievementPulse 2s ease-out;
+  }
+
+  @keyframes redAchievementPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(220, 20, 60, 0.3);
+    }
+    25% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 30px rgba(220, 20, 60, 0.6);
+    }
+    50% { 
+      transform: scale(1.01);
+      box-shadow: 0 0 25px rgba(220, 20, 60, 0.5);
+    }
+  }
+  
+  /* Red notification for First Blood */
+  .achievement-notification.red {
+    border-color: #dc143c;
+    background: linear-gradient(135deg, #2a1515 0%, #3a1a1a 100%);
+  }
+
+  .achievement-notification.red .notification-title {
+    color: #ff4444;
+  }
   @keyframes pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.7; transform: scale(1.2); }
@@ -2466,6 +2544,7 @@ const additionalStyles = `
     .notification-name {
       font-size: 1rem;
     }
+    
   }
 `;
 
@@ -3374,112 +3453,162 @@ class OSINTChallenge {
       }
     }
   }
+async checkAndClaimFirstBlood() {
+  if (!currentUser) return false;
+  
+  try {
+    // Use a Firestore transaction to ensure atomicity
+    const firstBloodRef = db.collection('gameState').doc('firstBlood');
+    
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(firstBloodRef);
+      
+      if (!doc.exists || !doc.data().claimed) {
+        // First blood not claimed yet!
+        transaction.set(firstBloodRef, {
+          claimed: true,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          teamName: currentUser.team || 'Solo',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true; // We got first blood!
+      }
+      
+      return false; // Someone else already has it
+    });
+    
+    if (result) {
+      // Award the achievement
+      await unlockAchievement('first_blood', currentUser.id, currentUser.name, currentUser.team);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error checking first blood:', error);
+    return false;
+  }
+}
+// Update your handleSubmit method in the OSINTChallenge class
+async handleSubmit(task, feedbackP, submitBtn) {
+  const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
+  const answers = inputs.map(inp => sanitizeInput(inp.value));
 
-  async handleSubmit(task, feedbackP, submitBtn) {
-    const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
-    const answers = inputs.map(inp => sanitizeInput(inp.value));
+  if (answers.some(answer => !answer)) {
+    this.showFeedback(feedbackP, 'Please fill in all fields.', 'error');
+    return;
+  }
 
-    if (answers.some(answer => !answer)) {
-      this.showFeedback(feedbackP, 'Please fill in all fields.', 'error');
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  submitBtn.textContent = '';
+
+  try {
+    // Call Val.town API for validation
+    const response = await fetch(CONFIG.VAL_TOWN_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        taskId: task.id, 
+        answers: answers,
+        userId: currentUser?.id || 'anonymous'
+      })
+    });
+
+    if (response.status === 403) {
+      const data = await response.json();
+      this.showFeedback(feedbackP, 'Challenge has not started yet!', 'error');
+      console.log(`Challenge starts at: ${data.startsAt}`);
       return;
     }
 
-    submitBtn.disabled = true;
-    submitBtn.classList.add('loading');
-    submitBtn.textContent = '';
+    if (!response.ok) {
+      throw new Error('Validation failed');
+    }
 
-    try {
-      // Call Val.town API for validation
-      const response = await fetch(CONFIG.VAL_TOWN_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          taskId: task.id, 
-          answers: answers,
-          userId: currentUser?.id || 'anonymous'
-        })
-      });
-
-      if (response.status === 403) {
-        const data = await response.json();
-        this.showFeedback(feedbackP, 'Challenge has not started yet!', 'error');
-        console.log(`Challenge starts at: ${data.startsAt}`);
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error('Validation failed');
-      }
-
-      const result = await response.json();
-      const allCorrect = result.allCorrect;
-      
-      if (allCorrect) {
-        if (this.completedTasks[task.id]) {
-          this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
+    const result = await response.json();
+    const allCorrect = result.allCorrect;
+    
+    if (allCorrect) {
+      if (this.completedTasks[task.id]) {
+        this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
+      } else {
+        // Mark task as completed
+        this.completedTasks[task.id] = {
+          completed: true,
+          timestamp: new Date().toISOString(),
+          attempts: (this.attemptCounts[task.id] || 0) + 1
+        };
+        this.saveProgress();
+        
+        // Check for First Blood BEFORE updating Firebase
+        const isFirstBlood = await this.checkAndClaimFirstBlood();
+        
+        if (isFirstBlood) {
+          this.showFeedback(feedbackP, 'FIRST BLOOD! You\'re the first to complete a task! 🩸🎉', 'success');
+          // Extra fireworks for first blood!
+          this.launchFireworks();
+          setTimeout(() => this.launchFireworks(), 500);
+          setTimeout(() => this.launchFireworks(), 1000);
         } else {
-          this.completedTasks[task.id] = {
-            completed: true,
-            timestamp: new Date().toISOString(),
-            attempts: (this.attemptCounts[task.id] || 0) + 1
-          };
-          this.saveProgress();
           this.showFeedback(feedbackP, 'Correct! Task completed! 🎉', 'success');
           this.launchFireworks();
-          this.updateTaskStatus(task.id);
-          this.updateProgress();
-          this.unlockNextTask(task);
-          
-          // Check for task completion achievements
-          const taskHintsUsed = this.taskHintsUsed[task.id] || 0;
-          checkAchievements('task_completed', { 
-            taskId: task.id, 
-            completedCount: Object.keys(this.completedTasks).length,
-            attempts: this.attemptCounts[task.id] || 1,
-            hintsUsed: this.hintClickCount,
-            taskHintsUsed: taskHintsUsed
-          });
-          
-          // Update Firebase with TOTAL hints count
-          if (currentUser) {
-            await updateUserProgress(
-              currentUser.id,
-              task.id,
-              true,
-              this.hintClickCount,  // Pass the TOTAL hints used so far
-              this.attemptCounts[task.id] || 1
-            );
-          }
         }
-      } else {
-        // Increment attempt counts for incorrect questions
-        result.results.forEach((correct, index) => {
-          if (!correct) {
-            const questionKey = `${task.id}_q${index}`;
-            this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
-          }
+        
+        this.updateTaskStatus(task.id);
+        this.updateProgress();
+        this.unlockNextTask(task);
+        
+        // Check for task completion achievements
+        const taskHintsUsed = this.taskHintsUsed[task.id] || 0;
+        checkAchievements('task_completed', { 
+          taskId: task.id, 
+          completedCount: Object.keys(this.completedTasks).length,
+          attempts: this.attemptCounts[task.id] || 1,
+          hintsUsed: this.hintClickCount,
+          taskHintsUsed: taskHintsUsed,
+          firstBlood: isFirstBlood
         });
         
-        this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
-        
-        const incorrectCount = result.results.filter(r => !r).length;
-        this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
-        
-        // Track wrong answers for achievements
-        checkAchievements('answer_wrong', { wrongCount: incorrectCount });
+        // Update Firebase with TOTAL hints count
+        if (currentUser) {
+          await updateUserProgress(
+            currentUser.id,
+            task.id,
+            true,
+            this.hintClickCount,
+            this.attemptCounts[task.id] || 1
+          );
+        }
       }
-    } catch (error) {
-      this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
-      console.error('Validation error:', error);
-    } finally {
-      setTimeout(() => {
-        submitBtn.disabled = false;
-        submitBtn.classList.remove('loading');
-        submitBtn.textContent = 'Submit';
-      }, 1000);
+    } else {
+      // Increment attempt counts for incorrect questions
+      result.results.forEach((correct, index) => {
+        if (!correct) {
+          const questionKey = `${task.id}_q${index}`;
+          this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
+        }
+      });
+      
+      this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
+      
+      const incorrectCount = result.results.filter(r => !r).length;
+      this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
+      
+      // Track wrong answers for achievements
+      checkAchievements('answer_wrong', { wrongCount: incorrectCount });
     }
+  } catch (error) {
+    this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
+    console.error('Validation error:', error);
+  } finally {
+    setTimeout(() => {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      submitBtn.textContent = 'Submit';
+    }, 1000);
   }
-
+}
   showFeedback(feedbackEl, message, type) {
     feedbackEl.textContent = message;
     feedbackEl.className = `feedback ${type}`;
