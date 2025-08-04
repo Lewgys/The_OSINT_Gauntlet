@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -2207,157 +2206,275 @@ async function unlockAchievement(achievementId, userId, userName, teamName) {
   }
 }
 
-// OPTIMIZED achievements listener - changed from 10 seconds to 2 minutes
+// Replace your existing startAchievementsListener function with this improved version
+
 function startAchievementsListener() {
   const achievementsList = document.getElementById('achievementsList');
-  console.log('Starting optimized Firebase achievements listener...');
+  console.log('Starting real-time Firebase achievements listener...');
   
-  // Check if we have cached achievements from recent session
-  const CACHE_KEY = 'osint_achievements_cache';
-  const CACHE_DURATION = 15 * 60 * 1000; // Increased to 15 minutes
+  // Clear any existing achievements
+  achievementsList.innerHTML = '';
   
-  // Try to load from cache first
-  const cached = localStorage.getItem(CACHE_KEY);
-  if (cached) {
-    try {
-      const { achievements, timestamp } = JSON.parse(cached);
-      if (Date.now() - timestamp < CACHE_DURATION) {
-        // Use cached achievements
-        achievementsList.innerHTML = '';
-        achievements.forEach(achievement => {
-          displayAchievement(achievement, achievementsList);
-        });
-      }
-    } catch (e) {
-      // Invalid cache, ignore
-    }
-  }
+  // Keep track of displayed achievements to prevent duplicates
+  const displayedAchievements = new Set();
   
-  // Load initial achievements (limited reads)
-  let lastTimestamp = null;
-  db.collection('achievements')
+  // Create a real-time listener that listens to all changes
+  achievementsListener = db.collection('achievements')
     .orderBy('timestamp', 'desc')
-    .limit(10)
-    .get()
-    .then(snapshot => {
-      const achievements = [];
-      achievementsList.innerHTML = '';
-      
-      snapshot.forEach(doc => {
+    .limit(50) // Start with last 50 achievements
+    .onSnapshot((snapshot) => {
+      // Handle document changes
+      snapshot.docChanges().forEach((change) => {
+        const doc = change.doc;
         const achievement = doc.data();
         achievement.docId = doc.id;
-        achievements.push(achievement);
-        displayAchievement(achievement, achievementsList);
-      });
-      
-      // Cache the achievements
-      localStorage.setItem(CACHE_KEY, JSON.stringify({
-        achievements: achievements,
-        timestamp: Date.now()
-      }));
-      
-      if (!snapshot.empty) {
-        lastTimestamp = snapshot.docs[0].data().timestamp;
-      }
-    })
-    .catch(error => {
-      console.error('Error loading initial achievements:', error);
-    });
-  
-  // Poll for new achievements only - CHANGED TO 2 MINUTES
-  setInterval(() => {
-    if (!lastTimestamp) return;
-    
-    db.collection('achievements')
-      .where('timestamp', '>', lastTimestamp)
-      .orderBy('timestamp', 'desc')
-      .limit(5)
-      .get()
-      .then(snapshot => {
-        if (!snapshot.empty) {
-          // Update lastTimestamp
-          lastTimestamp = snapshot.docs[0].data().timestamp;
-          
-          // Display new achievements
-          snapshot.forEach(doc => {
-            const achievement = doc.data();
-            achievement.docId = doc.id;
-            displayAchievement(achievement, achievementsList);
-          });
-          
-          // Update cache
-          const allAchievements = [];
-          achievementsList.querySelectorAll('[data-doc-id]').forEach((el, index) => {
-            if (index < 20) { // Keep only recent 20
-              allAchievements.push({
-                docId: el.getAttribute('data-doc-id'),
-                // Store other data if needed
-              });
+        
+        if (change.type === 'added') {
+          // Check if we've already displayed this achievement
+          if (!displayedAchievements.has(doc.id)) {
+            displayedAchievements.add(doc.id);
+            
+            // Determine if this is a new achievement (added after listener started)
+            const isNew = snapshot.metadata.hasPendingWrites || 
+                         (achievement.timestamp && 
+                          achievement.timestamp.toDate && 
+                          (Date.now() - achievement.timestamp.toDate().getTime()) < 5000);
+            
+            displayAchievement(achievement, achievementsList, isNew);
+            
+            // Show notification for own achievements
+            if (isNew && currentUser && achievement.userId === currentUser.id) {
+              showAchievementNotification(achievement);
             }
-          });
-          
-          localStorage.setItem(CACHE_KEY, JSON.stringify({
-            achievements: allAchievements,
-            timestamp: Date.now()
-          }));
+          }
         }
-      })
-      .catch(error => {
-        console.error('Error polling achievements:', error);
       });
-  }, 120000); // Changed to 120000ms (2 minutes)
+      
+      // Remove placeholder if it exists
+      const placeholder = achievementsList.querySelector('[style*="italic"]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+      
+      // Keep only the most recent achievements visible
+      while (achievementsList.children.length > 20) {
+        achievementsList.removeChild(achievementsList.lastChild);
+      }
+    }, (error) => {
+      console.error('Error in achievements listener:', error);
+      // Implement exponential backoff for reconnection
+      setTimeout(() => {
+        console.log('Attempting to reconnect achievements listener...');
+        startAchievementsListener();
+      }, 5000);
+    });
 }
 
-// Fixed displayAchievement function
-function displayAchievement(achievement, container) {
-  // Remove placeholder if exists
-  const placeholder = container.querySelector('[style*="italic"]');
-  if (placeholder) {
-    placeholder.remove();
-  }
-
+// Enhanced display function with animation states
+function displayAchievement(achievement, container, isNew = false) {
   // Check if this achievement already exists in the DOM
   if (achievement.docId && container.querySelector(`[data-doc-id="${achievement.docId}"]`)) {
-    console.log('Achievement already displayed:', achievement.docId);
     return;
   }
 
   const achievementEl = document.createElement('div');
-  achievementEl.className = 'achievement-item new';
+  achievementEl.className = 'achievement-item';
+  
+  // Add new class for fresh achievements
+  if (isNew) {
+    achievementEl.classList.add('new');
+    achievementEl.classList.add('pulse');
+  }
+  
   if (achievement.docId) {
     achievementEl.setAttribute('data-doc-id', achievement.docId);
   }
   
   // Add special styling for gold achievements
-  if (achievement.achievementId === 'gauntlet_complete' || achievement.special === 'gold') {
+  const isGoldAchievement = achievement.achievementId === 'gauntlet_complete' || 
+                           achievement.achievementId === 'speedrun_hour' ||
+                           ACHIEVEMENTS[achievement.achievementId]?.special === 'gold';
+  
+  if (isGoldAchievement) {
     achievementEl.classList.add('gold');
   }
   
-  // Get time ago - handle both timestamp formats
+  // Get time ago
   const timeAgo = getTimeAgo(achievement.timestamp);
   
   achievementEl.innerHTML = `
     <div class="achievement-icon">${achievement.achievementIcon}</div>
     <div class="achievement-time">${timeAgo}</div>
     <div class="achievement-content">
-      <div class="achievement-user">${achievement.userName}${achievement.teamName !== 'Solo' ? ` (${achievement.teamName})` : ''} Unlocked an Achievement!</div>
+      <div class="achievement-user">
+        ${achievement.userName}${achievement.teamName !== 'Solo' ? ` (${achievement.teamName})` : ''} 
+        <span class="achievement-action">earned</span>
+      </div>
       <div class="achievement-title">${achievement.achievementTitle}</div>
       <div class="achievement-description">${achievement.achievementDescription}</div>
     </div>
   `;
   
-  // Insert at the top
+  // Insert at the top with smooth animation
   container.insertBefore(achievementEl, container.firstChild);
   
-  // Remove 'new' class after animation
-  setTimeout(() => {
-    achievementEl.classList.remove('new');
-  }, 2000);
+  // Trigger reflow for animation
+  achievementEl.offsetHeight;
   
-  // Keep only latest 15 achievements visible
-  while (container.children.length > 15) {
-    container.removeChild(container.lastChild);
+  // Remove animation classes after completion
+  if (isNew) {
+    setTimeout(() => {
+      achievementEl.classList.remove('new');
+      achievementEl.classList.remove('pulse');
+    }, 3000);
   }
+}
+
+// Show notification for own achievements
+function showAchievementNotification(achievement) {
+  // Create a temporary notification element
+  const notification = document.createElement('div');
+  notification.className = 'achievement-notification';
+  notification.innerHTML = `
+    <div class="notification-icon">${achievement.achievementIcon}</div>
+    <div class="notification-content">
+      <div class="notification-title">Achievement Unlocked!</div>
+      <div class="notification-name">${achievement.achievementTitle}</div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Trigger animation
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 100);
+  
+  // Remove after 5 seconds
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 5000);
+}
+// Add these CSS styles to your existing styles
+const additionalStyles = `
+  /* Enhanced achievement animations */
+  @keyframes achievementPulse {
+    0% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    25% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    }
+    50% { 
+      transform: scale(1.01);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+  }
+
+  .achievement-item.pulse {
+    animation: achievementPulse 2s ease-out;
+  }
+
+  .achievement-action {
+    color: #999;
+    font-weight: normal;
+  }
+
+  /* Achievement notification styles */
+  .achievement-notification {
+    position: fixed;
+    top: 20px;
+    right: -400px;
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: right 0.3s ease-out;
+    z-index: 50000;
+  }
+
+  .achievement-notification.show {
+    right: 20px;
+  }
+
+  .notification-icon {
+    font-size: 2rem;
+  }
+
+  .notification-title {
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .notification-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  /* Live indicator */
+  .achievements-title::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #4caf50;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  @media (max-width: 768px) {
+    .achievement-notification {
+      right: -350px;
+      max-width: calc(100vw - 40px);
+      padding: 0.8rem 1.2rem;
+    }
+    
+    .achievement-notification.show {
+      right: 10px;
+    }
+    
+    .notification-icon {
+      font-size: 1.5rem;
+    }
+    
+    .notification-title {
+      font-size: 0.8rem;
+    }
+    
+    .notification-name {
+      font-size: 1rem;
+    }
+  }
+`;
+
+// Add the styles to the document
+if (!document.getElementById('achievement-styles')) {
+  const styleElement = document.createElement('style');
+  styleElement.id = 'achievement-styles';
+  styleElement.textContent = additionalStyles;
+  document.head.appendChild(styleElement);
 }
 
 // Fixed getTimeAgo function to handle Firebase timestamps
