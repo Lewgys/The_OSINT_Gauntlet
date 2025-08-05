@@ -12,9 +12,11 @@
     box-sizing: border-box;
   }
   
-  body {
+body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    background-attachment: fixed; /* Add this line */
+    min-height: 100vh; /* Add this line */
     color: #eee;
     max-width: 1400px;
     margin: 2rem auto;
@@ -23,7 +25,7 @@
     display: grid;
     grid-template-columns: 350px 1fr;
     gap: 2rem;
-  }
+}
 
   /* Team Selection Modal */
   .team-modal {
@@ -1492,7 +1494,7 @@
         Just so you know, we want to encourage real-world OSINT skills, not OWASP top 10, so this application is OUT OF SCOPE from any testing shenanigans...
       </div>
      
-      <p>If you have any questions, please feel free to shoot any of the event organisers a message and we will jump into your breakout room to answer. And keep your eyes peeled for the easter egg to earn further rewards for your team...Good Luck</p>
+      <p>If you have any questions, please feel free to shoot any of the event organisers a message and we will jump into your breakout room to answer. And keep your eyes peeled for the easter eggs to earn further rewards for your team...Good Luck</p>
       <p>Prizes for Team who Finishes quickest</p>
       <ul>
          <li>1st Place: £20 Gift card each + HTB Prize</li>
