@@ -1416,31 +1416,20 @@
 <!-- Team Selection Modal -->
 <div class="team-modal" id="teamModal">
   <div class="team-modal-content">
-    <h2 class="team-modal-title">Welcome back!</h2>
-    <p class="team-modal-subtitle">The challenge is starting. Would you like to join a team?</p>
+    <h2 class="team-modal-title">Welcome to the Challenge!</h2>
+    <p class="team-modal-subtitle">Please enter your team name to continue</p>
     
-    <div class="team-option">
-      <button class="team-option-btn" id="soloOption">
-        <div class="team-option-title">🎯 Continue Solo</div>
-        <div class="team-option-desc">I'll tackle this challenge on my own</div>
-      </button>
-    </div>
-    
-    <div class="team-option">
-      <button class="team-option-btn" id="teamOption">
-        <div class="team-option-title">👥 Join a Team</div>
-        <div class="team-option-desc">Work together with others</div>
-      </button>
-    </div>
-    
-    <div class="team-input-container" id="teamInputContainer">
+    <div class="team-input-container active">
       <div class="form-group">
-        <label for="teamNameInput">Team Name</label>
-        <input type="text" id="teamNameInput" placeholder="Enter your team name">
+        <label for="teamNameInput">Team Name <span style="color: #ff4444;">*</span></label>
+        <input type="text" id="teamNameInput" placeholder="Enter your team name" required>
+        <div class="form-note" style="color: #999; font-size: 0.85rem; margin-top: 0.5rem;">
+          Team name is required to participate in the challenge
+        </div>
       </div>
     </div>
     
-    <button class="team-confirm-btn" id="teamConfirmBtn" disabled>Confirm Selection</button>
+    <button class="team-confirm-btn" id="teamConfirmBtn" disabled>Enter Challenge</button>
   </div>
 </div>
 
@@ -1956,14 +1945,10 @@ async function startChallenge() {
     await lobbySystem.cleanup();
   }
   
-  // Check if user needs to select a team
-  if (currentUser && (!currentUser.team || currentUser.team === 'Solo')) {
-    // Show team selection modal
+  // Always show team selection modal after countdown
+  if (currentUser) {
     document.getElementById('countdownOverlay').classList.remove('active');
     document.getElementById('teamModal').classList.add('active');
-  } else {
-    // User already has a team, proceed normally
-    proceedWithChallengeStart();
   }
 }
 
@@ -2862,60 +2847,53 @@ async function loadLeaderboard() {
   });
 }
 
-// Team selection handlers
 function setupTeamSelection() {
   const teamModal = document.getElementById('teamModal');
-  const soloOption = document.getElementById('soloOption');
-  const teamOption = document.getElementById('teamOption');
-  const teamInputContainer = document.getElementById('teamInputContainer');
   const teamNameInput = document.getElementById('teamNameInput');
   const teamConfirmBtn = document.getElementById('teamConfirmBtn');
   
-  let selectedOption = null;
-  
-  soloOption.addEventListener('click', () => {
-    soloOption.classList.add('selected');
-    teamOption.classList.remove('selected');
-    teamInputContainer.classList.remove('active');
-    selectedOption = 'solo';
-    teamConfirmBtn.disabled = false;
-  });
-  
-  teamOption.addEventListener('click', () => {
-    teamOption.classList.add('selected');
-    soloOption.classList.remove('selected');
-    teamInputContainer.classList.add('active');
-    teamNameInput.focus();
-    selectedOption = 'team';
+  // Enable/disable confirm button based on input
+  teamNameInput.addEventListener('input', () => {
     teamConfirmBtn.disabled = !teamNameInput.value.trim();
   });
   
-  teamNameInput.addEventListener('input', () => {
-    if (selectedOption === 'team') {
-      teamConfirmBtn.disabled = !teamNameInput.value.trim();
+  // Allow Enter key to submit
+  teamNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && teamNameInput.value.trim()) {
+      teamConfirmBtn.click();
     }
   });
   
+  // Focus on input when modal opens
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.target.classList.contains('active')) {
+        setTimeout(() => teamNameInput.focus(), 100);
+      }
+    });
+  });
+  
+  observer.observe(teamModal, { attributes: true, attributeFilter: ['class'] });
+  
   teamConfirmBtn.addEventListener('click', async () => {
-    if (selectedOption === 'solo') {
-      // Keep as Solo
+    const teamName = sanitizeInput(teamNameInput.value);
+    
+    if (!teamName) {
+      alert('Please enter a team name');
+      return;
+    }
+    
+    const success = await updateUserTeam(currentUser.id, teamName);
+    
+    if (success) {
+      // Update display
+      const userDisplay = document.getElementById('userDisplay');
+      userDisplay.textContent = `${currentUser.name} (${teamName})`;
+      
       teamModal.classList.remove('active');
       proceedWithChallengeStart();
-    } else if (selectedOption === 'team' && teamNameInput.value.trim()) {
-      // Update team
-      const teamName = sanitizeInput(teamNameInput.value);
-      const success = await updateUserTeam(currentUser.id, teamName);
-      
-      if (success) {
-        // Update display
-        const userDisplay = document.getElementById('userDisplay');
-        userDisplay.textContent = `${currentUser.name} (${teamName})`;
-        
-        teamModal.classList.remove('active');
-        proceedWithChallengeStart();
-      } else {
-        alert('Error updating team. Please try again.');
-      }
+    } else {
+      alert('Error updating team. Please try again.');
     }
   });
 }
