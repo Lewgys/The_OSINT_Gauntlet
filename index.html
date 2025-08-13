@@ -2080,51 +2080,58 @@ class LobbySystem {
     }
   }
 
-  // NEW METHOD: Listen for incoming waves
-  listenForIncomingWaves() {
-    this.waveListener = db.collection('waves')
-      .where('toId', '==', currentUser.id)
-      .orderBy('timestamp', 'desc')
-      .limit(1)
-      .onSnapshot((snapshot) => {
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === 'added') {
-            const wave = change.doc.data();
-            
-            // Don't show notification for old waves (more than 10 seconds old)
-            if (wave.timestamp) {
-              const waveTime = wave.timestamp.toDate ? wave.timestamp.toDate() : new Date(wave.timestamp);
-              const now = new Date();
-              if ((now - waveTime) > 10000) return;
-            }
-            
-            // Show notification
-            const notification = document.createElement('div');
-            notification.style.cssText = `
-              position: fixed;
-              bottom: 100px;
-              left: 50%;
-              transform: translateX(-50%);
-              background: rgba(176, 211, 81, 0.95);
-              color: #1a1a1a;
-              padding: 1rem 2rem;
-              border-radius: 25px;
-              font-weight: bold;
-              z-index: 10000;
-              animation: slideUp 0.5s ease-out;
-              box-shadow: 0 4px 15px rgba(176, 211, 81, 0.4);
-            `;
-            notification.textContent = `👋 ${wave.from} waved at you!`;
-            document.body.appendChild(notification);
-            
+ // NEW METHOD: Listen for incoming waves
+listenForIncomingWaves() {
+  this.waveListener = db.collection('waves')
+    .where('toId', '==', currentUser.id)
+    .orderBy('timestamp', 'desc')
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === 'added') {
+          const wave = change.doc.data();
+          
+          // Skip if this is from the current user (shouldn't happen but just in case)
+          if (wave.fromId === currentUser.id) return;
+          
+          // Show notification
+          const notification = document.createElement('div');
+          notification.style.cssText = `
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #b0d351 0%, #a8cc4c 100%);
+            color: #1a1a1a;
+            padding: 1rem 2rem;
+            border-radius: 25px;
+            font-weight: bold;
+            z-index: 10000;
+            animation: slideUp 0.5s ease-out;
+            box-shadow: 0 4px 15px rgba(176, 211, 81, 0.4);
+            border: 2px solid #1a1a1a;
+          `;
+          notification.textContent = `👋 ${wave.from} waved at you!`;
+          document.body.appendChild(notification);
+          
+          // Also animate the waver's bubble if they're visible
+          const waverBubble = this.participants.get(wave.fromId);
+          if (waverBubble) {
+            waverBubble.element.style.animation = 'none';
             setTimeout(() => {
-              notification.style.animation = 'slideDown 0.5s ease-out';
-              setTimeout(() => notification.remove(), 500);
-            }, 3000);
+              waverBubble.element.style.animation = 'wave 0.5s ease-out, float 20s infinite ease-in-out';
+            }, 10);
           }
-        });
+          
+          setTimeout(() => {
+            notification.style.animation = 'slideDown 0.5s ease-out';
+            setTimeout(() => notification.remove(), 500);
+          }, 3000);
+        }
       });
-  }
+    }, (error) => {
+      console.error('Error in wave listener:', error);
+    });
+}
 
   async cleanup() {
     // Remove current user from lobby
