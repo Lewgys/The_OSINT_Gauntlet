@@ -353,7 +353,6 @@ body {
     border: 2px solid #b0d351;
     font-weight: 700;
     box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
-    animation: float 20s infinite ease-in-out;
   }
 
  .participant-bubble .team {
@@ -1408,101 +1407,6 @@ body {
     .countdown-label {
       font-size: 0.8rem;
     }
-   @keyframes receivedWave {
-  0%, 100% { 
-    transform: scale(1);
-    box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
-  }
-  25% { 
-    transform: scale(1.2);
-    box-shadow: 0 0 40px rgba(176, 211, 81, 0.8);
-    filter: brightness(1.5);
-  }
-  50% {
-    transform: scale(1.15);
-    box-shadow: 0 0 35px rgba(176, 211, 81, 0.6);
-  }
-  75% { 
-    transform: scale(1.2);
-    box-shadow: 0 0 40px rgba(176, 211, 81, 0.8);
-    filter: brightness(1.5);
-  }
-}
-   /* Wave Animations - Add these with your other @keyframes */
-@keyframes wave {
-  0%, 100% { 
-    transform: rotate(0deg) scale(1); 
-  }
-  25% { 
-    transform: rotate(-10deg) scale(1.15); 
-    filter: brightness(1.3);
-  }
-  50% {
-    transform: rotate(5deg) scale(1.1);
-  }
-  75% { 
-    transform: rotate(10deg) scale(1.15); 
-    filter: brightness(1.3);
-  }
-}
-
-@keyframes cantWave {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-5px); }
-  75% { transform: translateX(5px); }
-}
-
-@keyframes floatUpAndFade {
-  0% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  100% {
-    opacity: 0;
-    transform: translateY(-50px) scale(1.5);
-  }
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translate(-50%, 20px);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  to {
-    opacity: 0;
-    transform: translate(-50%, 20px);
-  }
-}
-
-/* Enhanced hover effect for waveable bubbles */
-.participant-bubble:not(.me):hover {
-  transform: scale(1.05);
-  box-shadow: 0 0 25px rgba(176, 211, 81, 0.5);
-  cursor: pointer;
-}
-
-.participant-bubble.me:hover {
-  transform: scale(1);
-  box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
-  cursor: not-allowed;
-}
-
-/* Style for the wave emoji */
-.wave-emoji {
-  user-select: none;
-  pointer-events: none;
-}
   }
 </style>
 </head>
@@ -1815,16 +1719,15 @@ let lobbySystem = null;
 
 class LobbySystem {
   constructor() {
-    this.container = document.getElementById('lobbyParticipants');
-    this.counter = document.getElementById('lobbyCounter');
-    this.countEl = document.getElementById('lobbyCount');
-    this.participants = new Map();
-    this.listener = null;
-    this.positions = new Map();
-    this.COLLISION_DISTANCE = 4;
-    this.MAX_POSITION_ATTEMPTS = 50;
-    this.waveListener = null; // Add wave listener reference
-  }
+  this.container = document.getElementById('lobbyParticipants');
+  this.counter = document.getElementById('lobbyCounter');
+  this.countEl = document.getElementById('lobbyCount');
+  this.participants = new Map();
+  this.listener = null;
+  this.positions = new Map();  // Changed from Set to Map
+  this.COLLISION_DISTANCE = 4;  // NEW
+  this.MAX_POSITION_ATTEMPTS = 50;  // NEW
+}
 
   start() {
     if (!currentUser) return;
@@ -1833,12 +1736,6 @@ class LobbySystem {
     
     // Add current user to lobby
     this.addCurrentUserToLobby();
-    
-    // Initialize wave feature
-    this.addWaveFeature();
-    
-    // Listen for waves directed at current user
-    this.listenForIncomingWaves();
     
     // Listen for other participants
     this.listener = db.collection('lobby')
@@ -1960,7 +1857,6 @@ class LobbySystem {
     
     return minDist === Infinity ? 100 : minDist;
   }
-
   createJoinRipple(x, y) {
     const ripple = document.createElement('div');
     ripple.className = 'join-ripple';
@@ -1986,31 +1882,31 @@ class LobbySystem {
   }
 
   generateRandomPosition() {
-    const centerX = 50;
-    const centerY = 50;
-    const minDistanceFromCenter = 20;
-    
-    let x, y, distance;
-    const maxAttempts = 50;
-    let attempts = 0;
-    
-    do {
-      x = Math.random() * 94 + 3; // 3-97%
-      y = Math.random() * 94 + 3; // 3-97%
-      
-      distance = Math.sqrt(
-        Math.pow(x - centerX, 2) + 
-        Math.pow(y - centerY, 2)
-      );
-      
-      attempts++;
-      if (attempts > maxAttempts) {
-        break;
-      }
-    } while (distance < minDistanceFromCenter);
-    
-    return { x, y };
-  }
+   const centerX = 50;
+   const centerY = 50;
+   const minDistanceFromCenter = 20;  // Reduced from 25-30
+   
+   let x, y, distance;
+   const maxAttempts = 50;
+   let attempts = 0;
+   
+   do {
+     x = Math.random() * 94 + 3; // 3-97%
+     y = Math.random() * 94 + 3; // 3-97%
+     
+     distance = Math.sqrt(
+       Math.pow(x - centerX, 2) + 
+       Math.pow(y - centerY, 2)
+     );
+     
+     attempts++;
+     if (attempts > maxAttempts) {
+       break;
+     }
+   } while (distance < minDistanceFromCenter);
+   
+   return { x, y };
+ }
 
   updateCounter() {
     const count = this.participants.size;
@@ -2023,152 +1919,6 @@ class LobbySystem {
     }
   }
 
-  // NEW METHOD: Add wave feature
-  addWaveFeature() {
-    // Click handler for waving
-    this.container.addEventListener('click', (e) => {
-      if (e.target.classList.contains('participant-bubble')) {
-        const userId = e.target.dataset.userId;
-        
-        // Can't wave at yourself
-        if (userId === currentUser?.id) {
-          e.target.style.animation = 'none';
-          setTimeout(() => {
-            e.target.style.animation = 'cantWave 0.3s ease-out, float 20s infinite ease-in-out';
-          }, 10);
-          return;
-        }
-        
-        // Create wave animation
-        e.target.style.animation = 'none';
-        setTimeout(() => {
-          e.target.style.animation = 'wave 0.5s ease-out, float 20s infinite ease-in-out';
-        }, 10);
-        
-        // Add visual feedback - emoji wave
-        const waveEmoji = document.createElement('div');
-        waveEmoji.className = 'wave-emoji';
-        waveEmoji.textContent = '👋';
-        waveEmoji.style.cssText = `
-          position: absolute;
-          left: ${e.target.offsetLeft + e.target.offsetWidth/2}px;
-          top: ${e.target.offsetTop}px;
-          font-size: 1.5rem;
-          z-index: 1000;
-          pointer-events: none;
-          animation: floatUpAndFade 1.5s ease-out forwards;
-        `;
-        this.container.appendChild(waveEmoji);
-        
-        // Remove emoji after animation
-        setTimeout(() => waveEmoji.remove(), 1500);
-        
-        // Send wave notification
-        const participant = this.participants.get(userId);
-        const targetName = participant ? participant.data.name : 'Unknown';
-        this.sendWaveNotification(userId, targetName);
-      }
-    });
-    
-    // Hover handler for cursor and tooltips
-    this.container.addEventListener('mouseover', (e) => {
-      if (e.target.classList.contains('participant-bubble')) {
-        const userId = e.target.dataset.userId;
-        e.target.style.cursor = userId === currentUser?.id ? 'not-allowed' : 'pointer';
-        
-        // Add hover text
-        if (!e.target.title) {
-          e.target.title = userId === currentUser?.id 
-            ? "That's you!" 
-            : "Click to wave 👋";
-        }
-      }
-    });
-  }
-
-  // NEW METHOD: Send wave to Firebase
-  async sendWaveNotification(targetUserId, targetName) {
-    try {
-      await db.collection('waves').add({
-        from: currentUser.name,
-        fromId: currentUser.id,
-        to: targetName,
-        toId: targetUserId,
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      console.log(`Waved at ${targetName}!`);
-    } catch (error) {
-      console.error('Failed to send wave:', error);
-    }
-  }
-
-listenForIncomingWaves() {
-  this.waveListener = db.collection('waves')
-    .where('toId', '==', currentUser.id)
-    .orderBy('timestamp', 'desc')
-    .onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === 'added') {
-          const wave = change.doc.data();
-          
-          // Skip if this is from the current user (shouldn't happen but just in case)
-          if (wave.fromId === currentUser.id) return;
-          
-          // Show notification
-          const notification = document.createElement('div');
-          notification.style.cssText = `
-            position: fixed;
-            bottom: 100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, #b0d351 0%, #a8cc4c 100%);
-            color: #1a1a1a;
-            padding: 1rem 2rem;
-            border-radius: 25px;
-            font-weight: bold;
-            z-index: 10000;
-            animation: slideUp 0.5s ease-out;
-            box-shadow: 0 4px 15px rgba(176, 211, 81, 0.4);
-            border: 2px solid #1a1a1a;
-          `;
-          notification.textContent = `👋 ${wave.from} waved at you!`;
-          document.body.appendChild(notification);
-          
-          // Animate YOUR bubble with special received wave animation
-          const myBubble = this.participants.get(currentUser.id);
-          if (myBubble && myBubble.element) {
-            const element = myBubble.element;
-            
-            // Store current animation delay
-            const currentDelay = element.style.animationDelay || '0s';
-            
-            // Clear animation completely
-            element.style.animation = '';
-            
-            // Force browser to acknowledge the change
-            void element.offsetWidth;
-            
-            // Apply wave animation
-            element.style.animation = 'receivedWave 1s ease-out';
-            
-            // After wave completes, restore float
-            setTimeout(() => {
-              element.style.animation = 'float 20s infinite ease-in-out';
-              element.style.animationDelay = currentDelay;
-            }, 1000);
-          }
-          
-          setTimeout(() => {
-            notification.style.animation = 'slideDown 0.5s ease-out';
-            setTimeout(() => notification.remove(), 500);
-          }, 3000);
-        }
-      });
-    }, (error) => {
-      console.error('Error in wave listener:', error);
-    });
-}
-
   async cleanup() {
     // Remove current user from lobby
     if (currentUser) {
@@ -2179,15 +1929,10 @@ listenForIncomingWaves() {
       }
     }
     
-    // Stop listeners
+    // Stop listener
     if (this.listener) {
       this.listener();
       this.listener = null;
-    }
-    
-    if (this.waveListener) {
-      this.waveListener();
-      this.waveListener = null;
     }
     
     // Clear participants
