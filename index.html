@@ -2043,7 +2043,8 @@ class LobbySystem {
         setTimeout(() => waveEmoji.remove(), 1500);
         
         // Send wave notification
-        const targetName = e.target.textContent.split('\n')[0];
+        const participant = this.participants.get(userId);
+        const targetName = participant ? participant.data.name : 'Unknown';
         this.sendWaveNotification(userId, targetName);
       }
     });
