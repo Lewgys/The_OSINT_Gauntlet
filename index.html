@@ -1407,6 +1407,26 @@ body {
     .countdown-label {
       font-size: 0.8rem;
     }
+   @keyframes receivedWave {
+  0%, 100% { 
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
+  }
+  25% { 
+    transform: scale(1.2);
+    box-shadow: 0 0 40px rgba(176, 211, 81, 0.8);
+    filter: brightness(1.5);
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 35px rgba(176, 211, 81, 0.6);
+  }
+  75% { 
+    transform: scale(1.2);
+    box-shadow: 0 0 40px rgba(176, 211, 81, 0.8);
+    filter: brightness(1.5);
+  }
+}
    /* Wave Animations - Add these with your other @keyframes */
 @keyframes wave {
   0%, 100% { 
@@ -2114,12 +2134,12 @@ listenForIncomingWaves() {
           notification.textContent = `👋 ${wave.from} waved at you!`;
           document.body.appendChild(notification);
           
-          // Also animate the waver's bubble if they're visible
-          const waverBubble = this.participants.get(wave.fromId);
-          if (waverBubble) {
-            waverBubble.element.style.animation = 'none';
+          // Animate YOUR bubble with special received wave animation
+          const myBubble = this.participants.get(currentUser.id);
+          if (myBubble) {
+            myBubble.element.style.animation = 'none';
             setTimeout(() => {
-              waverBubble.element.style.animation = 'wave 0.5s ease-out, float 20s infinite ease-in-out';
+              myBubble.element.style.animation = 'receivedWave 1s ease-out, float 20s infinite ease-in-out';
             }, 10);
           }
           
