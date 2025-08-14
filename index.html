@@ -353,6 +353,7 @@ body {
     border: 2px solid #b0d351;
     font-weight: 700;
     box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
+    animation: float 20s infinite ease-in-out;
   }
 
  .participant-bubble .team {
@@ -2101,7 +2102,6 @@ class LobbySystem {
     }
   }
 
- // NEW METHOD: Listen for incoming waves
 listenForIncomingWaves() {
   this.waveListener = db.collection('waves')
     .where('toId', '==', currentUser.id)
@@ -2136,11 +2136,26 @@ listenForIncomingWaves() {
           
           // Animate YOUR bubble with special received wave animation
           const myBubble = this.participants.get(currentUser.id);
-          if (myBubble) {
-            myBubble.element.style.animation = 'none';
+          if (myBubble && myBubble.element) {
+            const element = myBubble.element;
+            
+            // Store current animation delay
+            const currentDelay = element.style.animationDelay || '0s';
+            
+            // Clear animation completely
+            element.style.animation = '';
+            
+            // Force browser to acknowledge the change
+            void element.offsetWidth;
+            
+            // Apply wave animation
+            element.style.animation = 'receivedWave 1s ease-out';
+            
+            // After wave completes, restore float
             setTimeout(() => {
-              myBubble.element.style.animation = 'receivedWave 1s ease-out, float 20s infinite ease-in-out';
-            }, 10);
+              element.style.animation = 'float 20s infinite ease-in-out';
+              element.style.animationDelay = currentDelay;
+            }, 1000);
           }
           
           setTimeout(() => {
