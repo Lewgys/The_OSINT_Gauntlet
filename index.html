@@ -1,0 +1,3846 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="description" content="Interactive OSINT Challenge - Test your open source intelligence skills">
+<meta name="robots" content="noindex, nofollow">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://*.googleapis.com https://firestore.googleapis.com https://*.firebaseio.com https://*.workers.dev; font-src 'self' data:; base-uri 'self'; object-src 'none';"><style>
+  * {
+    box-sizing: border-box;
+  }
+  
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    background-attachment: fixed; /* Add this line */
+    min-height: 100vh; /* Add this line */
+    color: #eee;
+    max-width: 1400px;
+    margin: 2rem auto;
+    padding: 1rem;
+    line-height: 1.6;
+    display: grid;
+    grid-template-columns: 350px 1fr;
+    gap: 2rem;
+}
+
+  /* Team Selection Modal */
+  .team-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 30000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .team-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .team-modal-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s ease;
+  }
+
+  .team-modal-title {
+    color: #b0d351;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .team-modal-subtitle {
+    color: #999;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .team-option {
+    margin-bottom: 1rem;
+  }
+
+  .team-option-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #444;
+    color: #eee;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: left;
+  }
+
+  .team-option-btn:hover {
+    border-color: #b0d351;
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    transform: translateY(-2px);
+  }
+
+  .team-option-btn.selected {
+    border-color: #b0d351;
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+  }
+
+  .team-option-title {
+    font-weight: 700;
+    color: #b0d351;
+    margin-bottom: 0.3rem;
+  }
+
+  .team-option-desc {
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+
+  .team-input-container {
+    margin-top: 1.5rem;
+    display: none;
+  }
+
+  .team-input-container.active {
+    display: block;
+  }
+
+  .team-confirm-btn {
+    width: 100%;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1.5rem;
+  }
+
+  .team-confirm-btn:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+
+  .team-confirm-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Countdown Timer Styles */
+  .countdown-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    animation: fadeIn 0.5s ease;
+  }
+
+  .countdown-overlay.active {
+    display: flex;
+  }
+
+  .countdown-container {
+    text-align: center;
+    max-width: 800px;
+    width: 90%;
+    padding: 2rem;
+    z-index: 10;
+    position: relative;
+  }
+
+  .countdown-title {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 2px;
+  }
+
+  .countdown-subtitle {
+    color: #999;
+    font-size: 1.2rem;
+    margin-bottom: 3rem;
+  }
+
+  .countdown-timer {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin-bottom: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .countdown-unit {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 1.5rem;
+    min-width: 120px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .countdown-number {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #b0d351;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .countdown-label {
+    color: #999;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .countdown-user-info {
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 8px;
+    padding: 1rem 2rem;
+    margin-bottom: 2rem;
+    color: #b0d351;
+    font-size: 1.1rem;
+  }
+
+  .countdown-briefing-btn {
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 2rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+  }
+
+  .countdown-briefing-btn:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+
+  .countdown-starting {
+    font-size: 4rem;
+    color: #b0d351;
+    font-weight: 700;
+    animation: pulse 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+  }
+
+  /* Countdown Briefing Modal Styles */
+  .countdown-briefing-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 20001;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    overflow-y: auto;
+  }
+
+  .countdown-briefing-modal.active {
+    display: flex;
+  }
+
+  .countdown-briefing-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 600px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s ease-out;
+  }
+
+  .countdown-briefing-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.3s ease;
+    line-height: 1;
+  }
+
+  .countdown-briefing-close:hover {
+    color: #b0d351;
+  }
+
+  /* Lobby System Styles */
+  .lobby-participants {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+ .participant-bubble {
+   position: absolute;
+   background: rgba(176, 211, 81, 0.1);
+   border: 1px solid rgba(176, 211, 81, 0.3);
+   border-radius: 18px;  /* Changed from 20px */
+   padding: 0.45rem 0.9rem;  /* Changed from 0.5rem 1rem */
+   font-size: 0.77rem;  /* Changed from 0.85rem */
+   color: #b0d351;
+   white-space: nowrap;
+   animation: float 20s infinite ease-in-out;
+   transition: all 0.5s ease;
+   pointer-events: auto;
+   cursor: default;
+   z-index: 5;
+ }
+  .participant-bubble:hover {
+    background: rgba(176, 211, 81, 0.2);
+    border-color: #b0d351;
+    transform: scale(1.1);
+    z-index: 10;
+  }
+
+  .participant-bubble.me {
+    background: rgba(176, 211, 81, 0.3);
+    border: 2px solid #b0d351;
+    font-weight: 700;
+    box-shadow: 0 0 20px rgba(176, 211, 81, 0.4);
+  }
+
+ .participant-bubble .team {
+   font-size: 0.68rem;  /* Changed from 0.75rem */
+   color: #999;
+   margin-top: 0.2rem;
+ }
+
+  .participant-bubble.new {
+    animation: bubbleAppear 0.5s ease-out, float 20s infinite ease-in-out;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) translateX(0px); }
+    25% { transform: translateY(-20px) translateX(10px); }
+    50% { transform: translateY(10px) translateX(-10px); }
+    75% { transform: translateY(-10px) translateX(15px); }
+  }
+
+  @keyframes bubbleAppear {
+    from {
+      opacity: 0;
+      transform: scale(0);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .lobby-counter {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 20px;
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    color: #b0d351;
+    z-index: 100;
+  }
+
+  .lobby-counter span {
+    font-weight: 700;
+    color: #fff;
+  }
+
+  /* Join ripple animation */
+  .join-ripple {
+    position: absolute;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(176, 211, 81, 0.6) 0%, rgba(176, 211, 81, 0) 70%);
+    transform: translate(-50%, -50%) scale(0);
+    animation: rippleEffect 1.5s ease-out;
+    pointer-events: none;
+    z-index: 3;
+  }
+
+  @keyframes rippleEffect {
+    to {
+      transform: translate(-50%, -50%) scale(4);
+      opacity: 0;
+    }
+  }
+
+  /* Global Achievements Panel */
+  .achievements-panel {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 1.5rem;
+    height: fit-content;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: sticky;
+    top: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .achievements-title {
+    color: #b0d351;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    text-align: center;
+    border-bottom: 2px solid rgba(176, 211, 81, 0.3);
+    padding-bottom: 0.5rem;
+  }
+
+  .achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .achievement-item {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(176, 211, 81, 0.2);
+    border-radius: 10px;
+    padding: 1rem;
+    animation: slideInLeft 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .achievement-item.new {
+    animation: achievementPulse 2s ease-out;
+    border-color: #ffd700;
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+
+  .achievement-item.gold {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1) 0%, rgba(255, 193, 7, 0.1) 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+  }
+
+  .achievement-item.gold .achievement-title {
+    color: #ffd700;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    font-weight: 700;
+  }
+
+  .achievement-item.gold .achievement-icon {
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+    transform: scale(1.2);
+  }
+
+  .achievement-user {
+    font-weight: 700;
+    color: #b0d351;
+    font-size: 0.9rem;
+  }
+
+  .achievement-title {
+    font-weight: 600;
+    color: #ffd700;
+    font-size: 0.85rem;
+    margin: 0.25rem 0;
+  }
+
+  .achievement-description {
+    color: #ccc;
+    font-size: 0.8rem;
+    line-height: 1.4;
+  }
+
+  .achievement-time {
+    color: #888;
+    font-size: 0.7rem;
+    position: absolute;
+    top: 0.5rem;
+    right: 0.75rem;
+  }
+
+  .achievement-icon {
+    position: absolute;
+    top: 0.5rem;
+    left: 0.75rem;
+    font-size: 1.2rem;
+  }
+
+  .achievement-item .achievement-content {
+    margin-left: 2rem;
+  }
+
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes achievementPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    50% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+    }
+  }
+
+  /* Main content area */
+  .main-content {
+    min-width: 0; /* Prevents grid overflow */
+  }
+
+  /* Login/Registration Modal */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    animation: slideDown 0.3s ease;
+  }
+
+  .modal-title {
+    color: #b0d351;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    color: #eee;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+  }
+
+  .form-group input {
+    width: 100%;
+    padding: 0.8rem;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background: #2a2a2a;
+    color: #eee;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+  }
+
+  .form-group input:focus {
+    outline: none;
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+
+  .form-submit {
+    width: 100%;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+  }
+
+  .form-submit:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+
+  .form-error {
+    color: #ff5252;
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    text-align: center;
+  }
+
+  .form-note {
+    color: #999;
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    text-align: center;
+    font-style: italic;
+  }
+
+  /* Progress Dashboard Button */
+  .dashboard-button {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+    z-index: 1000;
+  }
+
+  .dashboard-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+
+  /* User info display */
+  .user-info {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(30, 30, 30, 0.9);
+    border: 1px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    color: #b0d351;
+    display: none;
+    z-index: 1000;
+  }
+
+  .user-info.active {
+    display: block;
+  }
+
+  /* Progress Dashboard */
+  .dashboard-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10001;
+    overflow-y: auto;
+  }
+
+  .dashboard-modal.active {
+    display: block;
+  }
+
+  .dashboard-content {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 15px;
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 800px;
+    width: 90%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+
+  .dashboard-title {
+    color: #b0d351;
+    font-size: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  .leaderboard-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  .leaderboard-table th,
+  .leaderboard-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #444;
+  }
+
+  .leaderboard-table th {
+    background: rgba(176, 211, 81, 0.1);
+    color: #b0d351;
+    font-weight: 700;
+  }
+
+  .leaderboard-table tr:hover {
+    background: rgba(176, 211, 81, 0.05);
+  }
+
+  .close-dashboard {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 2rem;
+    cursor: pointer;
+    transition: color 0.3s ease;
+  }
+
+  .close-dashboard:hover {
+    color: #b0d351;
+  }
+
+  /* Existing styles from your original file */
+  .header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+    padding-top: 3rem;
+  }
+  
+  .hint-counter {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #b0d351;
+    box-shadow: 0 4px 15px rgba(0,0,0,0..3);
+    text-align: center;
+    margin: 1.5rem auto 2rem auto;
+    max-width: fit-content;
+    white-space: nowrap;
+  }
+  
+  .hint-counter .shame-text {
+    color: #ffecb3;
+  }
+  
+  .briefing-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1000;
+  }
+  
+  .briefing-button {
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    border: none;
+    color: #1a1a1a;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(176, 211, 81, 0.3);
+  }
+  
+  .briefing-button:hover {
+    background: linear-gradient(45deg, #a8cc4c, #9bc045);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(176, 211, 81, 0.4);
+  }
+  
+  .briefing-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.5rem;
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 2px solid #b0d351;
+    border-radius: 12px;
+    padding: 1.5rem;
+    max-width: 500px;
+    width: 90vw;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    display: none;
+    animation: slideDown 0.3s ease-out;
+  }
+  
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .briefing-content {
+    color: #eee;
+    line-height: 1.6;
+    font-size: 0.95rem;
+  }
+  
+  .briefing-title {
+    color: #b0d351;
+    font-weight: 700;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .briefing-note {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    font-weight: 600;
+  }
+  
+  .briefing-signature {
+    text-align: right;
+    color: #b0d351;
+    font-weight: 600;
+    margin-top: 1.5rem;
+    font-style: italic;
+  }
+  
+  .briefing-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.25rem;
+    border-radius: 4px;
+    transition: color 0.3s ease;
+  }
+  
+  .briefing-close:hover {
+    color: #b0d351;
+  }
+  
+  h1 {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
+    background: linear-gradient(45deg, #b0d351, #a8cc4c);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .subtitle {
+    color: #999;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+  
+  .progress-container {
+    background: #1e1e1e;
+    border-radius: 15px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  
+  .progress-bar {
+    background: #333;
+    border-radius: 10px;
+    height: 10px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+  
+  .progress-fill {
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    height: 100%;
+    width: 0%;
+    transition: width 0.5s ease;
+  }
+  
+  .progress-text {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #ccc;
+  }
+  
+  ul.task-list {
+    list-style: none;
+    padding: 0;
+  }
+  
+  li.task {
+    background: linear-gradient(135deg, #1e1e1e 0%, #2a2a2a 100%);
+    border: 1px solid #333;
+    border-radius: 15px;
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    position: relative;
+    overflow: hidden;
+  }
+  
+  li.task::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #b0d351, #a8cc4c);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+  }
+  
+  li.task:hover {
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border-color: #b0d351;
+    transform: translateY(-2px);
+  }
+  
+  li.task:hover::before {
+    transform: scaleX(1);
+  }
+  
+  li.task:focus-within {
+    outline: 2px solid #b0d351;
+    outline-offset: 2px;
+  }
+  
+  .task-title {
+    font-weight: 700;
+    font-size: 1.3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .task-badge {
+    background: #333;
+    color: #999;
+    padding: 0.2rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+  
+  .task-badge.completed {
+    background: linear-gradient(45deg, #4caf50, #45a049);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .task-content button.submit-btn:hover {
+    background: linear-gradient(45deg, #6a7740, #5a6535);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(176, 211, 81, 0.4);
+  }
+  
+  .task-content button.submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .task-content button.submit-btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px;
+    border: 2px solid transparent;
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+  
+  .feedback {
+    margin-top: 1rem;
+    font-weight: 700;
+    min-height: 1.5rem;
+    padding: 0.8rem;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+  
+  .feedback.success {
+    background: rgba(76, 175, 80, 0.2);
+    border: 1px solid #4caf50;
+    color: #81c784;
+  }
+  
+  .feedback.error {
+    background: rgba(244, 67, 54, 0.2);
+    border: 1px solid #f44336;
+    color: #ef5350;
+  }
+  
+  .feedback.info {
+    background: rgba(176, 211, 81, 0.2);
+    border: 1px solid #b0d351;
+    color: #c4de6b;
+  }
+  
+  .task.open > .task-title .arrow {
+    transform: rotate(180deg);
+  }
+  
+  .task .arrow {
+    font-size: 1.2rem;
+    transition: transform 0.3s ease;
+    color: #b0d351;
+  }
+  
+  canvas#fireworks {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9999;
+  }
+  
+  li.task.locked {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+  }
+  
+  li.task.bonus {
+    background: linear-gradient(135deg, #2a1810 0%, #3d2817 100%);
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+  }
+  
+  li.task.bonus::before {
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+  }
+  
+  li.task.bonus:hover {
+    background: linear-gradient(135deg, #3d2817 0%, #4a2f1c 100%);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+    transform: translateY(-3px);
+  }
+  
+  li.task.bonus .task-title {
+    color: #ffd700;
+  }
+  
+  li.task.bonus .task-badge.completed {
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #1a1a1a;
+  }
+
+  .task-badge.locked {
+    background: #444;
+    color: #666;
+  }
+  
+  .task-content {
+    margin-top: 1.5rem;
+    display: none;
+    animation: fadeIn 0.3s ease;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  .question-container {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(176, 211, 81, 0.1);
+  }
+  
+  .question-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+  }
+  
+  .task-content p.question {
+    margin: 0;
+    font-weight: 600;
+    color: #f0f0f0;
+    padding: 0.5rem;
+    background: rgba(176, 211, 81, 0.1);
+    border-radius: 8px;
+    border-left: 3px solid #b0d351;
+    flex: 1;
+    margin-right: 0.5rem;
+  }
+  
+  .task-content input[type="text"] {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 8px;
+    border: 2px solid #333;
+    outline: none;
+    font-size: 1rem;
+    background: #2a2a2a;
+    color: #eee;
+    transition: border-color 0.3s ease;
+    margin-top: 0.5rem;
+  }
+  
+  .task-content input[type="text"]:focus {
+    border-color: #b0d351;
+    box-shadow: 0 0 10px rgba(176, 211, 81, 0.3);
+  }
+  
+  .task-content button.submit-btn {
+    margin-top: 1rem;
+    background: linear-gradient(45deg, #b0d351, #6a7740);
+    border: none;
+    padding: 0.8rem 2rem;
+    color: white;
+  }
+  
+  li.task.bonus .task-badge:not(.completed) {
+    background: rgba(255, 215, 0, 0.2);
+    border: 1px solid #ffd700;
+    color: #ffd700;
+  }
+  
+  .hint-btn {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.4rem 0.8rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 80px;
+  }
+  
+  .hint-btn:hover {
+    background: rgba(255, 193, 7, 0.3);
+  }
+  
+  .hint-text {
+    background: rgba(255, 193, 7, 0.1);
+    border: 1px solid #ffc107;
+    color: #ffecb3;
+    padding: 0.8rem;
+    border-radius: 8px;
+    margin-top: 0.5rem;
+    font-style: italic;
+    display: none;
+  }
+  
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  @media (max-width: 1200px) {
+    body {
+      grid-template-columns: 1fr;
+      max-width: 900px;
+    }
+    
+    .achievements-panel {
+      position: relative;
+      top: 0;
+      max-height: 300px;
+      order: -1;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    body {
+      padding: 0.5rem;
+      margin: 1rem auto;
+      gap: 1rem;
+    }
+    
+    .achievements-panel {
+      max-height: 250px;
+      padding: 1rem;
+    }
+    
+    .achievements-title {
+      font-size: 1.1rem;
+    }
+    
+    .achievement-item {
+      padding: 0.75rem;
+    }
+    
+    .header {
+      padding-top: 3rem;
+    }
+    
+    h1 {
+      font-size: 2rem;
+    }
+    
+    .task-title {
+      font-size: 1.2rem;
+    }
+    
+    .task-content input[type="text"] {
+      font-size: 16px;
+    }
+    
+    li.task {
+      padding: 1rem;
+    }
+    
+    .briefing-container {
+      position: static;
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+    
+    .hint-counter {
+      margin: 1rem auto 1.5rem auto;
+    }
+    
+    .briefing-dropdown {
+      position: static;
+      max-width: none;
+      width: 100%;
+      margin-top: 0.5rem;
+    }
+    
+    .question-header {
+      flex-direction: column;
+    }
+    
+    .task-content p.question {
+      margin-right: 0;
+      margin-bottom: 0.5rem;
+    }
+    
+    .dashboard-button {
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+    }
+
+    .countdown-title {
+      font-size: 2rem;
+    }
+
+    .countdown-timer {
+      gap: 1rem;
+    }
+
+    .countdown-unit {
+      min-width: 80px;
+      padding: 1rem;
+    }
+
+    .countdown-number {
+      font-size: 2.5rem;
+    }
+    
+    .participant-bubble {
+      font-size: 0.75rem;
+      padding: 0.4rem 0.8rem;
+    }
+    
+    .lobby-counter {
+      font-size: 0.8rem;
+      bottom: 1rem;
+    }
+    
+    .countdown-briefing-content {
+      padding: 1.5rem;
+      margin: 1rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .header {
+      padding-top: 2.5rem;
+    }
+    
+    .hint-counter {
+      font-size: 0.8rem;
+      padding: 0.4rem 0.8rem;
+      margin: 1rem auto 1rem auto;
+    }
+    
+    .briefing-button {
+      padding: 0.6rem 1.2rem;
+      font-size: 0.8rem;
+    }
+    
+    h1 {
+      font-size: 1.8rem;
+    }
+    
+    .hint-btn {
+      padding: 0.3rem 0.6rem;
+      font-size: 0.8rem;
+    }
+
+    .countdown-title {
+      font-size: 1.5rem;
+    }
+
+    .countdown-subtitle {
+      font-size: 1rem;
+    }
+
+    .countdown-number {
+      font-size: 2rem;
+    }
+
+    .countdown-label {
+      font-size: 0.8rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- Team Selection Modal -->
+<div class="team-modal" id="teamModal">
+  <div class="team-modal-content">
+    <h2 class="team-modal-title">Welcome to the Challenge!</h2>
+    <p class="team-modal-subtitle">Please enter your team name to continue</p>
+    
+    <div class="team-input-container active">
+      <div class="form-group">
+        <label for="teamNameInput">Team Name <span style="color: #ff4444;">*</span></label>
+        <input type="text" id="teamNameInput" placeholder="Enter your team name" required>
+        <div class="form-note" style="color: #999; font-size: 0.85rem; margin-top: 0.5rem;">
+          Team name is required to participate in the challenge
+        </div>
+      </div>
+    </div>
+    
+    <button class="team-confirm-btn" id="teamConfirmBtn" disabled>Enter Challenge</button>
+  </div>
+</div>
+
+<!-- Countdown Timer Overlay -->
+<div class="countdown-overlay" id="countdownOverlay">
+  <div class="countdown-container">
+    <h1 class="countdown-title">The OSINT Gauntlet</h1>
+    <p class="countdown-subtitle">Challenge begins in:</p>
+    
+    <div class="countdown-user-info" id="countdownUserInfo" style="display: none;">
+      <span id="countdownUserDisplay"></span>
+    </div>
+    
+    <div class="countdown-timer" id="countdownTimer">
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countDays">00</div>
+        <div class="countdown-label">Days</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countHours">00</div>
+        <div class="countdown-label">Hours</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countMinutes">00</div>
+        <div class="countdown-label">Minutes</div>
+      </div>
+      <div class="countdown-unit">
+        <div class="countdown-number" id="countSeconds">00</div>
+        <div class="countdown-label">Seconds</div>
+      </div>
+    </div>
+    
+    <div id="countdownStarting" style="display: none;">
+      <p class="countdown-starting">STARTING NOW!</p>
+    </div>
+    
+    <button class="countdown-briefing-btn" id="countdownBriefingBtn">📋 View Briefing</button>
+  </div>
+  
+  <!-- Lobby System -->
+  <div class="lobby-participants" id="lobbyParticipants"></div>
+  <div class="lobby-counter" id="lobbyCounter" style="display: none;">
+    <span id="lobbyCount">0</span> participants waiting
+  </div>
+</div>
+
+<!-- Separate Briefing Modal for Countdown/Lobby -->
+<div class="countdown-briefing-modal" id="countdownBriefingModal">
+  <div class="countdown-briefing-content">
+    <button class="countdown-briefing-close" id="countdownBriefingClose">✕</button>
+    <div class="briefing-title">Briefing</div>
+    <div class="briefing-content">
+      <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. While you are in this waiting room, please decide on a team name amongst your designated members as you will be prompted to input your decided team name on challenge entry.</p>
+      
+      <p>The challenge at hand will have you investigating a malicious threat actor that has compromised an employee's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly.</p>
+      
+      <div class="briefing-note">
+        <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques; DO NOT attempt any active techniques such as reaching out to the account holder and attempting brute-force attacks.
+
+        Just so you know, we want to encourage real-world OSINT skills, not OWASP top 10, so this application is OUT OF SCOPE from any testing shenanigans...(I will be reviewing logs and will hunt you down)
+      </div>
+     
+      <p>If you have any questions, please feel free to shoot any of the event organisers a message and we will jump into your breakout room to answer. And keep your eyes peeled for the easter eggs to earn further rewards for your team...Good Luck</p>
+
+      <p>Prizes will be announced on the day!</p>
+      
+      <div class="briefing-signature">- Lewis G</div>
+    </div>
+  </div>
+</div>
+
+<!-- Global Achievements Panel -->
+<div class="achievements-panel">
+  <div class="achievements-title">🏆 Live Achievements</div>
+  <div class="achievements-list" id="achievementsList">
+    <div style="text-align: center; color: #666; font-style: italic; padding: 2rem;">
+      Waiting for achievements...
+    </div>
+  </div>
+</div>
+
+<!-- Main Content Area -->
+<div class="main-content">
+
+<!-- Login/Registration Modal -->
+<div class="modal active" id="loginModal">
+  <div class="modal-content">
+    <h2 class="modal-title">Welcome to the OSINT Gauntlet</h2>
+    <form id="loginForm">
+      <div class="form-group">
+        <label for="userName">Your FULL Name(Forename/Surname)</label>
+        <input type="text" id="userName" required autocomplete="name">
+      </div>
+      <div class="form-group" id="teamFieldContainer" style="display: none;">
+        <label for="userTeam">Team Name (Optional)</label>
+        <input type="text" id="userTeam" autocomplete="organization">
+      </div>
+      <button type="submit" class="form-submit">Register for Challenge</button>
+      <div class="form-note" id="formNote" style="display: none;">
+        You will be prompted to enter your team name when the groups have been established and the challenge begins
+      </div>
+      <div class="form-error" id="loginError"></div>
+    </form>
+  </div>
+</div>
+
+<!-- User Info Display -->
+<div class="user-info" id="userInfo">
+  <span id="userDisplay"></span>
+</div>
+
+<!-- Progress Dashboard Button -->
+<button class="dashboard-button" id="dashboardBtn" style="display: none;">
+  📊 Leaderboard
+</button>
+
+<!-- Progress Dashboard Modal -->
+<div class="dashboard-modal" id="dashboardModal">
+  <div class="dashboard-content">
+    <button class="close-dashboard" id="closeDashboard">×</button>
+    <h2 class="dashboard-title">OSINT Challenge Leaderboard</h2>
+    <div id="leaderboardContent">
+      <p style="text-align: center; color: #999;">Loading leaderboard...</p>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="briefing-container">
+    <button class="briefing-button" id="briefingBtn">📋Briefing</button>
+    <div class="briefing-dropdown" id="briefingDropdown">
+      <button class="briefing-close" id="briefingClose">✕</button>
+      <div class="briefing-title">Briefing</div>
+      <div class="briefing-content">
+        <p>Welcome to Lewis' OSINT Challenge. This challenge is supposed to test you on a variety of different OSINT techniques. Within your team, it is highly likely that if you smash your heads together, you will complete all 5 Tasks at hand.</p>
+        
+        <p>The challenge at hand will have you investigating a malicious threat actor that has compromised an employee's system and left a note. It is your job to gather as much information as possible on the individual and answer the questions accordingly. I highly recommend that you dig deeper than you think throughout this.</p>
+        
+        <div class="briefing-note">
+          <strong>NOTE:</strong> All answers can be obtained via passive OSINT techniques, DO NOT attempt any active techniques such as reaching out to the account holder and attempting brute-force attacks.
+
+          Just so you know, we want to encourage real-world OSINT skills, not source-diving and OWASP top 10, so don't test this page...
+        </div>
+        
+        <p>If you have any questions, please feel free to shoot any of the event organisers a message...Good Luck</p>
+        
+        <div class="briefing-signature">- Lewis G</div>
+      </div>
+    </div>
+  </div>
+  
+  <h1>The OSINT Gauntlet</h1>
+  <h3>By Lewis Graham</h3>
+  <p class="subtitle">Test your Open Source Intelligence skills</p>
+  
+  <div class="progress-container">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="progress-text" id="progressText">0 of 6 tasks completed</div>
+  </div>
+</div>
+
+<div class="hint-counter" id="hintCounter">
+  Hint <span class="shame-text">Counter of Shame</span>: <span id="hintCount">0</span>
+</div>
+
+<ul class="task-list" id="taskList"></ul>
+<canvas id="fireworks"></canvas>
+
+</div> <!-- End main-content -->
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+
+<script>
+// Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyDA-XeeqX46xoKrpvpcomGzUDLSbG_t95g",
+  authDomain: "osint-gauntlet-cec74.firebaseapp.com",
+  projectId: "osint-gauntlet-cec74",
+  storageBucket: "osint-gauntlet-cec74.firebasestorage.app",
+  messagingSenderId: "892071332763",
+  appId: "1:892071332763:web:7346fea3b1429108396f3e"
+};
+
+//Initialise Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// Configuration
+const CONFIG = {
+  HASH_ROUNDS: 1000,
+  FIREWORKS_PARTICLES: 120,
+  ANIMATION_DURATION: 5000,
+  STORAGE_KEY: 'osint_challenge_progress',
+  // Cloudflare Worker that replaces val.town (deployed 2026-11-25).
+  API_ENDPOINT: 'https://osint-gauntlet-api.osint-gauntlet-worker.workers.dev'
+};
+
+// Session storage key for user persistence
+const SESSION_STORAGE_KEY = 'osint_challenge_user_session';
+const COUNTDOWN_STORAGE_KEY = 'osint_challenge_registered_before_start';
+
+// Current user state
+let currentUser = null;
+let countdownInterval = null;
+let challengeStarted = false;
+let challengeStartTime = null;
+
+// Global achievements system
+const ACHIEVEMENTS = {
+  helping_hand: {
+    title: "Helping Hand (Cheater)",
+    description: "Used their First Hint.",
+    icon: "💡"
+  },
+  speedrun_hour: {
+    title: "ANY% Speed Run", 
+    description: "Has completed the OSINT Gauntlet within an hour.",
+    icon: "⚡",
+    special: "gold" // Special Styling
+  },
+  gauntlet_complete: {
+    title: "COMPLETED THE GAUNLET",
+    description: "Has Completed the OSINT Gauntlet.",
+    icon: "👑",
+    special: "gold" // Special styling
+  },
+  hint_addict: {
+    title: "This is getting embarrassing...",
+    description: "Used more than 15 Hints.",
+    icon: "🤦"
+  },
+  wrong_king: {
+    title: "King of Getting Answers Wrong",
+    description: "Has had more than 5 Answers Wrong",
+    icon: "👑❌"
+  },
+  baby_steps: {
+    title: "Baby Steps",
+    description: "Completed Task 1!",
+    icon: "👶"
+  },
+  crypto_bro: {
+    title: "Crypto Bro",
+    description: "Completed Task 3 in 30 Minutes or Less",
+    icon: "₿"
+  },
+  no_hint_hero: {
+    title: "No Hint Hero",
+    description: "Complete a Task with no Hints",
+    icon: "🦸"
+  },
+   first_blood: {
+    title: "First Blood",
+    description: "First person to complete any task in the challenge",
+    icon: "🩸",
+    special: "red" // New special type for red styling
+  },
+   social_butterfly: {
+    title: "Social Butterfly",
+    description: "Completed Task 4 (Social Scrape) without hints",
+    icon: "🦋"
+  },
+   leaderboard_stalker: {
+    title: "Leaderboard Stalker",
+    description: "Checked the leaderboard 15+ times",
+    icon: "👀"
+  }
+};
+
+let achievementsListener = null;
+let userStartTime = null; // Track when user started
+let taskStartTimes = {}; // Track when each task was started
+let totalWrongAnswers = 0; // Track wrong answers
+let gameInstance = null; // Store the game instance globally
+let leaderboardViewCount = loadLeaderboardViewCount(); // Track leaderboard views
+
+
+// Real-time leaderboard variables
+let leaderboardListener = null;
+let leaderboardData = new Map();
+let isLeaderboardInitialized = false;
+
+// Lobby System
+let lobbySystem = null;
+
+class LobbySystem {
+  constructor() {
+  this.container = document.getElementById('lobbyParticipants');
+  this.counter = document.getElementById('lobbyCounter');
+  this.countEl = document.getElementById('lobbyCount');
+  this.participants = new Map();
+  this.listener = null;
+  this.positions = new Map();  // Changed from Set to Map
+  this.COLLISION_DISTANCE = 4;  // NEW
+  this.MAX_POSITION_ATTEMPTS = 50;  // NEW
+}
+
+  start() {
+    if (!currentUser) return;
+    
+    console.log('Starting lobby system...');
+    
+    // Add current user to lobby
+    this.addCurrentUserToLobby();
+    
+    // Listen for other participants
+    this.listener = db.collection('lobby')
+      .where('active', '==', true)
+      .onSnapshot((snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          const data = change.doc.data();
+          const userId = change.doc.id;
+          
+          if (change.type === 'added') {
+            this.addParticipant(userId, data);
+          } else if (change.type === 'removed') {
+            this.removeParticipant(userId);
+          }
+        });
+        
+        this.updateCounter();
+      });
+  }
+
+  async addCurrentUserToLobby() {
+    try {
+      await db.collection('lobby').doc(currentUser.id).set({
+        name: currentUser.name,
+        team: currentUser.team || 'Solo',
+        active: true,
+        joinedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (error) {
+      console.error('Error joining lobby:', error);
+    }
+  }
+
+  addParticipant(userId, data) {
+    if (this.participants.has(userId)) return;
+    
+    const bubble = document.createElement('div');
+    bubble.className = 'participant-bubble new';
+    bubble.dataset.userId = userId;
+    
+    // Check if it's the current user
+    if (userId === currentUser?.id) {
+      bubble.classList.add('me');
+    }
+    
+    // Set content
+    bubble.innerHTML = `
+      ${escapeHtml(data.name)}
+      ${data.team !== 'Solo' ? `<div class="team">${escapeHtml(data.team)}</div>` : ''}
+    `;
+    
+    // Generate position with collision detection
+    const position = this.findOptimalPosition(userId);
+    bubble.style.left = `${position.x}%`;
+    bubble.style.top = `${position.y}%`;
+    
+    // Add random animation delay
+    bubble.style.animationDelay = `${Math.random() * 20}s`;
+    
+    // Add join ripple effect
+    this.createJoinRipple(position.x, position.y);
+    
+    this.container.appendChild(bubble);
+    this.participants.set(userId, { element: bubble, data: data, position: position });
+    this.positions.set(userId, position);
+    
+    // Remove 'new' class after animation
+    setTimeout(() => bubble.classList.remove('new'), 500);
+  }
+
+  findOptimalPosition(userId) {
+    let attempts = 0;
+    let bestPosition = null;
+    let bestMinDistance = 0;
+    
+    while (attempts < this.MAX_POSITION_ATTEMPTS) {
+      const position = this.generateRandomPosition();
+      
+      if (!this.hasCollision(position)) {
+        return position;
+      }
+      
+      const minDist = this.getMinimumDistance(position);
+      if (minDist > bestMinDistance) {
+        bestMinDistance = minDist;
+        bestPosition = position;
+      }
+      
+      attempts++;
+    }
+    
+    return bestPosition || this.generateRandomPosition();
+  }
+
+  hasCollision(position) {
+    for (const [otherId, otherPos] of this.positions) {
+      const distance = Math.sqrt(
+        Math.pow(position.x - otherPos.x, 2) + 
+        Math.pow(position.y - otherPos.y, 2)
+      );
+      
+      if (distance < this.COLLISION_DISTANCE) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  getMinimumDistance(position) {
+    let minDist = Infinity;
+    
+    for (const [otherId, otherPos] of this.positions) {
+      const distance = Math.sqrt(
+        Math.pow(position.x - otherPos.x, 2) + 
+        Math.pow(position.y - otherPos.y, 2)
+      );
+      minDist = Math.min(minDist, distance);
+    }
+    
+    return minDist === Infinity ? 100 : minDist;
+  }
+  createJoinRipple(x, y) {
+    const ripple = document.createElement('div');
+    ripple.className = 'join-ripple';
+    ripple.style.left = `${x}%`;
+    ripple.style.top = `${y}%`;
+    
+    this.container.appendChild(ripple);
+    
+    // Remove ripple after animation
+    setTimeout(() => ripple.remove(), 1500);
+  }
+
+  removeParticipant(userId) {
+    const participant = this.participants.get(userId);
+    if (participant) {
+      participant.element.style.opacity = '0';
+      setTimeout(() => {
+        participant.element.remove();
+        this.participants.delete(userId);
+        this.positions.delete(userId);
+      }, 500);
+    }
+  }
+
+  generateRandomPosition() {
+   const centerX = 50;
+   const centerY = 50;
+   const minDistanceFromCenter = 20;  // Reduced from 25-30
+   
+   let x, y, distance;
+   const maxAttempts = 50;
+   let attempts = 0;
+   
+   do {
+     x = Math.random() * 94 + 3; // 3-97%
+     y = Math.random() * 94 + 3; // 3-97%
+     
+     distance = Math.sqrt(
+       Math.pow(x - centerX, 2) + 
+       Math.pow(y - centerY, 2)
+     );
+     
+     attempts++;
+     if (attempts > maxAttempts) {
+       break;
+     }
+   } while (distance < minDistanceFromCenter);
+   
+   return { x, y };
+ }
+
+  updateCounter() {
+    const count = this.participants.size;
+    this.countEl.textContent = count;
+    
+    if (count > 0) {
+      this.counter.style.display = 'block';
+    } else {
+      this.counter.style.display = 'none';
+    }
+  }
+
+  async cleanup() {
+    // Remove current user from lobby
+    if (currentUser) {
+      try {
+        await db.collection('lobby').doc(currentUser.id).delete();
+      } catch (error) {
+        console.error('Error leaving lobby:', error);
+      }
+    }
+    
+    // Stop listener
+    if (this.listener) {
+      this.listener();
+      this.listener = null;
+    }
+    
+    // Clear participants
+    this.participants.clear();
+    this.positions.clear();
+    this.container.innerHTML = '';
+    this.counter.style.display = 'none';
+  }
+}
+
+// Check challenge status from server
+async function checkChallengeStatus() {
+  try {
+    const response = await fetch(CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'checkStatus' })
+    });
+    
+    const data = await response.json();
+    
+    if (data.started) {
+      challengeStarted = true;
+      return { started: true };
+    } else {
+      challengeStartTime = new Date(data.startsAt);
+      return { 
+        started: false, 
+        startsAt: challengeStartTime,
+        timeRemaining: data.timeRemaining 
+      };
+    }
+  } catch (error) {
+    console.error('Error checking status:', error);
+    // Fallback behavior - assume challenge hasn't started
+    return { started: false };
+  }
+}
+
+// Countdown Timer Functions
+function updateCountdown() {
+  if (!challengeStartTime) return;
+  
+  const now = new Date();
+  const diff = challengeStartTime - now;
+  
+  if (diff <= 0) {
+    // Challenge has started!
+    clearInterval(countdownInterval);
+    startChallenge();
+    return;
+  }
+  
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+  const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+  
+  document.getElementById('countDays').textContent = String(days).padStart(2, '0');
+  document.getElementById('countHours').textContent = String(hours).padStart(2, '0');
+  document.getElementById('countMinutes').textContent = String(minutes).padStart(2, '0');
+  document.getElementById('countSeconds').textContent = String(seconds).padStart(2, '0');
+}
+
+async function startChallenge() {
+  challengeStarted = true;
+  
+  // Cleanup lobby
+  if (lobbySystem) {
+    await lobbySystem.cleanup();
+  }
+  
+  // Always show team selection modal after countdown
+  if (currentUser) {
+    document.getElementById('countdownOverlay').classList.remove('active');
+    document.getElementById('teamModal').classList.add('active');
+  }
+}
+
+function proceedWithChallengeStart() {
+  // Show "STARTING NOW!" message
+  document.getElementById('countdownOverlay').classList.add('active');
+  document.getElementById('countdownTimer').style.display = 'none';
+  document.getElementById('countdownStarting').style.display = 'block';
+  
+  // Wait 3 seconds then hide countdown overlay
+  setTimeout(() => {
+    document.getElementById('countdownOverlay').classList.remove('active');
+    
+    // Initialize the game if user is already registered
+    if (currentUser) {
+      initializeGame();
+    }
+  }, 3000);
+}
+
+function initializeGame() {
+  // Initialize the main challenge
+  gameInstance = new OSINTChallenge();
+  
+  // Start listening for achievements
+  startAchievementsListener();
+  
+  // Mark user as started for achievement tracking
+  checkAchievements('user_started');
+  
+  // Show dashboard button
+  document.getElementById('dashboardBtn').style.display = 'block';
+}
+
+// Modified Session management functions
+function loadUserSession() {
+  try {
+    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!savedSession) return null;
+    
+    const session = JSON.parse(savedSession);
+    
+    // Check if session is recent (within 30 days)
+    const sessionAge = Date.now() - session.timestamp;
+    const maxAge = 30 * 24 * 60 * 60 * 1000; //30 days
+    
+    if (sessionAge > maxAge) {
+      localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error loading session:', error);
+    localStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+}
+
+function clearUserSession() {
+  localStorage.removeItem(SESSION_STORAGE_KEY);
+  localStorage.removeItem(COUNTDOWN_STORAGE_KEY);
+  currentUser = null;
+}
+
+// Modified saveUserToFirebase to handle pre-registration
+async function saveUserToFirebase(name, team, isPreRegistration = false) {
+  try {
+    // Always create a new user entry (no checking for duplicates)
+    const userRef = await db.collection('users').add({
+      name: name,
+      team: team || 'Solo',
+      startTime: firebase.firestore.FieldValue.serverTimestamp(),
+      lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+      preRegistered: isPreRegistration
+    });
+    const userId = userRef.id;
+    
+    // Save session to localStorage with unique session ID
+    const userSession = {
+      id: userId,
+      name: name,
+      team: team || 'Solo',
+      timestamp: Date.now(),
+      sessionId: generateSessionId() // Add unique session identifier
+    };
+    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(userSession));
+    
+    // If pre-registering, also save that info
+    if (isPreRegistration) {
+      localStorage.setItem(COUNTDOWN_STORAGE_KEY, 'true');
+    }
+    
+    return userId;
+  } catch (error) {
+    console.error('Error saving user:', error);
+    return null;
+  }
+}
+
+// Function to update user team
+async function updateUserTeam(userId, teamName) {
+  try {
+    await db.collection('users').doc(userId).update({
+      team: teamName,
+      teamUpdatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update local session
+    const session = loadUserSession();
+    if (session) {
+      session.team = teamName;
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+    }
+    
+    // Update currentUser
+    currentUser.team = teamName;
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating team:', error);
+    return false;
+  }
+}
+
+// Input sanitisation
+function sanitizeInput(input) {
+  return input.trim().replace(/[<>]/g, '');
+}
+
+// Escape user-supplied text before inserting it into innerHTML (stored-XSS defence).
+// Always escape names/teams at the point they are rendered, not just on input.
+function escapeHtml(str) {
+  return String(str ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// Tasks configuration WITHOUT ANSWERS AND WITHOUT HINTS
+const tasks = [
+  {
+    id: 'task1',
+    title: 'Task 1: The Tip Off',
+    description: 'Analyse the provided image to identify the attacker',
+    questions: [
+      'What username does the attacker go by? (Click <a href="https://lewgys.github.io/The_OSINT_Gauntlet/images/pwnedletter.svg" target="_blank" rel="noopener noreferrer">here</a> to view the tip-off image.)'
+    ],
+    keys: 1
+  },
+  {
+    id: 'task2',
+    title: 'Task 2: Recon',
+    description: 'Gather intelligence on the target',
+    questions: [
+      'What is the full email address of the attacker?',
+      'What is the attacker\'s full real name?'
+    ],
+    keys: 2
+  },
+  {
+    id: 'task3',
+    title: 'Task 3: Cryptic Crypto',
+    description: 'Investigate cryptocurrency activities',
+    questions: [
+      'What Cryptocurrency does the attacker own a wallet for? (abbreviation of the crypto)',
+      'What is the attacker\'s cryptocurrency wallet address?',
+      'What mining pool did the attacker receive crypto from on January 23rd, 2021?',
+      'What other cryptocurrency did the attacker exchange with?'
+    ],
+    keys: 4
+  },
+  {
+    id: 'task4',
+    title: 'Task 4: Social Scrape',
+    description: 'Find current social media presence',
+    questions: [
+      'What is the attacker\'s current Twitter (X) handle?',
+      'At what company was the attacker last employed at?'
+    ],
+    keys: 2
+  },
+  {
+    id: 'task5',
+    title: 'Task 5: Air Miles',
+    description: 'Track travel movements',
+    questions: [
+      'What airport is closest to the location where the attacker shared a photo prior to getting on their flight? (Airport code)',
+      'What airport is the attacker having a layover at? (Airport code)'
+    ],
+    keys: 2
+  },
+  {
+    id: 'task6',
+    title: 'Task 6: Bonus Round',
+    description: 'Final challenge - Good Luck',
+    questions: [
+      'What is the mystery flag?',
+      'What building does the attacker live in?',
+      'On what day did the attacker get his favourite Caffeinated Beverage? (Provide answer in following format: DD/MM/YYYY)'
+    ],
+    keys: 3,
+    hiddenUntil: 'task5'
+  }
+];
+
+// Generate unique session ID
+function generateSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+// 2. Replace your existing unlockAchievement function
+async function unlockAchievement(achievementId, userId, userName, teamName) {
+  try {
+    console.log('Attempting to unlock achievement:', achievementId, 'for user:', userName, 'with ID:', userId);
+    
+    if (!ACHIEVEMENTS[achievementId]) {
+      console.warn('Achievement not found:', achievementId);
+      return;
+    }
+
+    if (!userId || !userName) {
+      console.error('Missing required parameters:', { userId, userName });
+      return;
+    }
+
+    // Define single-use achievements that can only be earned once globally
+    const SINGLE_USE_ACHIEVEMENTS = ['first_blood'];
+    
+    // Check if this is a single-use achievement
+    if (SINGLE_USE_ACHIEVEMENTS.includes(achievementId)) {
+      // Check if ANYONE has this achievement already
+      const globalCheck = await db.collection('achievements')
+        .where('achievementId', '==', achievementId)
+        .limit(1)
+        .get();
+      
+      if (!globalCheck.empty) {
+        console.log('Single-use achievement already claimed:', achievementId);
+        return; // Someone already has this achievement
+      }
+    } else {
+      // For regular achievements, check if this specific user already has it
+      const existingQuery = await db.collection('achievements')
+        .where('userId', '==', userId)
+        .where('achievementId', '==', achievementId)
+        .get();
+
+      if (!existingQuery.empty) {
+        console.log('User already has this achievement:', achievementId);
+        return;
+      }
+    }
+
+    console.log('Awarding achievement:', achievementId);
+    
+    // Save to Firebase
+    await db.collection('achievements').add({
+      userId: userId,
+      userName: userName,
+      teamName: teamName || 'Solo',
+      achievementId: achievementId,
+      achievementTitle: ACHIEVEMENTS[achievementId].title,
+      achievementDescription: ACHIEVEMENTS[achievementId].description,
+      achievementIcon: ACHIEVEMENTS[achievementId].icon,
+      special: ACHIEVEMENTS[achievementId].special || null,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    console.log(`Achievement unlocked: ${achievementId} for ${userName}`);
+  } catch (error) {
+    console.error('Error unlocking achievement:', error);
+  }
+}
+
+// Replace your existing startAchievementsListener function with this improved version
+
+function startAchievementsListener() {
+  const achievementsList = document.getElementById('achievementsList');
+  console.log('Starting real-time Firebase achievements listener...');
+  
+  // Clear any existing achievements
+  achievementsList.innerHTML = '';
+  
+  // Keep track of displayed achievements to prevent duplicates
+  const displayedAchievements = new Set();
+  
+  // Create a real-time listener that listens to all changes
+  achievementsListener = db.collection('achievements')
+    .orderBy('timestamp', 'desc')
+    .limit(50) // Start with last 50 achievements
+    .onSnapshot((snapshot) => {
+      // Handle document changes
+      snapshot.docChanges().forEach((change) => {
+        const doc = change.doc;
+        const achievement = doc.data();
+        achievement.docId = doc.id;
+        
+        if (change.type === 'added') {
+          // Check if we've already displayed this achievement
+          if (!displayedAchievements.has(doc.id)) {
+            displayedAchievements.add(doc.id);
+            
+            // Determine if this is a new achievement (added after listener started)
+            const isNew = snapshot.metadata.hasPendingWrites || 
+                         (achievement.timestamp && 
+                          achievement.timestamp.toDate && 
+                          (Date.now() - achievement.timestamp.toDate().getTime()) < 5000);
+            
+            displayAchievement(achievement, achievementsList, isNew);
+            
+            // Show notification for own achievements
+            if (isNew && currentUser && achievement.userId === currentUser.id) {
+              showAchievementNotification(achievement);
+            }
+          }
+        }
+      });
+      
+      // Remove placeholder if it exists
+      const placeholder = achievementsList.querySelector('[style*="italic"]');
+      if (placeholder) {
+        placeholder.remove();
+      }
+      
+      // Keep only the most recent achievements visible
+      while (achievementsList.children.length > 20) {
+        achievementsList.removeChild(achievementsList.lastChild);
+      }
+    }, (error) => {
+      console.error('Error in achievements listener:', error);
+      // Implement exponential backoff for reconnection
+      setTimeout(() => {
+        console.log('Attempting to reconnect achievements listener...');
+        startAchievementsListener();
+      }, 5000);
+    });
+}
+
+// 3. Update your displayAchievement function to handle red achievements
+function displayAchievement(achievement, container, isNew = false) {
+  // Check if this achievement already exists in the DOM
+  if (achievement.docId && container.querySelector(`[data-doc-id="${achievement.docId}"]`)) {
+    return;
+  }
+
+  const achievementEl = document.createElement('div');
+  achievementEl.className = 'achievement-item';
+  
+  // Add new class for fresh achievements
+  if (isNew) {
+    achievementEl.classList.add('new');
+    achievementEl.classList.add('pulse');
+  }
+  
+  if (achievement.docId) {
+    achievementEl.setAttribute('data-doc-id', achievement.docId);
+  }
+  
+  // Add special styling for gold achievements
+  const isGoldAchievement = achievement.achievementId === 'gauntlet_complete' || 
+                           achievement.achievementId === 'speedrun_hour' ||
+                           achievement.special === 'gold';
+  
+  // Add special styling for red achievements (First Blood)
+  const isRedAchievement = achievement.achievementId === 'first_blood' || 
+                          achievement.special === 'red';
+  
+  if (isGoldAchievement) {
+    achievementEl.classList.add('gold');
+  } else if (isRedAchievement) {
+    achievementEl.classList.add('red');
+  }
+  
+  // Get time ago
+  const timeAgo = getTimeAgo(achievement.timestamp);
+  
+  achievementEl.innerHTML = `
+    <div class="achievement-icon">${achievement.achievementIcon}</div>
+    <div class="achievement-time">${timeAgo}</div>
+    <div class="achievement-content">
+      <div class="achievement-user">
+        ${escapeHtml(achievement.userName)}${achievement.teamName !== 'Solo' ? ` (${escapeHtml(achievement.teamName)})` : ''}
+        <span class="achievement-action">earned</span>
+      </div>
+      <div class="achievement-title">${achievement.achievementTitle}</div>
+      <div class="achievement-description">${achievement.achievementDescription}</div>
+    </div>
+  `;
+  
+  // Insert at the top with smooth animation
+  container.insertBefore(achievementEl, container.firstChild);
+  
+  // Trigger reflow for animation
+  achievementEl.offsetHeight;
+  
+  // Remove animation classes after completion
+  if (isNew) {
+    setTimeout(() => {
+      achievementEl.classList.remove('new');
+      achievementEl.classList.remove('pulse');
+    }, 3000);
+  }
+}
+// Show notification for own achievements
+// 5. Update showAchievementNotification to handle red achievements
+function showAchievementNotification(achievement) {
+  const notification = document.createElement('div');
+  notification.className = 'achievement-notification';
+  
+  // Add red class if it's a red achievement
+  if (achievement.achievementId === 'first_blood' || achievement.special === 'red') {
+    notification.classList.add('red');
+  }
+  
+  notification.innerHTML = `
+    <div class="notification-icon">${achievement.achievementIcon}</div>
+    <div class="notification-content">
+      <div class="notification-title">Achievement Unlocked!</div>
+      <div class="notification-name">${achievement.achievementTitle}</div>
+    </div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.classList.add('show');
+  }, 100);
+  
+  setTimeout(() => {
+    notification.classList.remove('show');
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }, 5000);
+}
+// Add these CSS styles to your existing styles
+const additionalStyles = `
+  /* Enhanced achievement animations */
+  @keyframes achievementPulse {
+    0% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+    25% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    }
+    50% { 
+      transform: scale(1.01);
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.4);
+    }
+    100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+    }
+  }
+
+  .achievement-item.pulse {
+    animation: achievementPulse 2s ease-out;
+  }
+
+  .achievement-action {
+    color: #999;
+    font-weight: normal;
+  }
+
+  /* Achievement notification styles */
+  .achievement-notification {
+    position: fixed;
+    top: 20px;
+    right: -400px;
+    background: linear-gradient(135deg, #2a2a2a 0%, #3a3a3a 100%);
+    border: 2px solid #ffd700;
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: right 0.3s ease-out;
+    z-index: 50000;
+  }
+
+  .achievement-notification.show {
+    right: 20px;
+  }
+
+  .notification-icon {
+    font-size: 2rem;
+  }
+
+  .notification-title {
+    color: #ffd700;
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .notification-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+
+  /* Live indicator */
+  .achievements-title::after {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #4caf50;
+    border-radius: 50%;
+    margin-left: 0.5rem;
+    animation: pulse 2s infinite;
+  }
+  /* Red achievement styles for First Blood */
+  .achievement-item.red {
+    background: linear-gradient(135deg, rgba(220, 20, 20, 0.1) 0%, rgba(139, 0, 0, 0.1) 100%);
+    border: 2px solid #dc143c;
+    box-shadow: 0 0 20px rgba(220, 20, 60, 0.4);
+  }
+
+  .achievement-item.red .achievement-title {
+    color: #ff4444;
+    text-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+    font-weight: 700;
+  }
+
+  .achievement-item.red .achievement-icon {
+    text-shadow: 0 0 10px rgba(220, 20, 60, 0.8);
+    transform: scale(1.2);
+  }
+
+  .achievement-item.red.new {
+    animation: redAchievementPulse 2s ease-out;
+  }
+
+  @keyframes redAchievementPulse {
+    0%, 100% { 
+      transform: scale(1);
+      box-shadow: 0 0 15px rgba(220, 20, 60, 0.3);
+    }
+    25% { 
+      transform: scale(1.02);
+      box-shadow: 0 0 30px rgba(220, 20, 60, 0.6);
+    }
+    50% { 
+      transform: scale(1.01);
+      box-shadow: 0 0 25px rgba(220, 20, 60, 0.5);
+    }
+  }
+  
+  /* Red notification for First Blood */
+  .achievement-notification.red {
+    border-color: #dc143c;
+    background: linear-gradient(135deg, #2a1515 0%, #3a1a1a 100%);
+  }
+
+  .achievement-notification.red .notification-title {
+    color: #ff4444;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.2); }
+  }
+
+  @media (max-width: 768px) {
+    .achievement-notification {
+      right: -350px;
+      max-width: calc(100vw - 40px);
+      padding: 0.8rem 1.2rem;
+    }
+    
+    .achievement-notification.show {
+      right: 10px;
+    }
+    
+    .notification-icon {
+      font-size: 1.5rem;
+    }
+    
+    .notification-title {
+      font-size: 0.8rem;
+    }
+    
+    .notification-name {
+      font-size: 1rem;
+    }
+    
+  }
+`;
+
+// Add the styles to the document
+if (!document.getElementById('achievement-styles')) {
+  const styleElement = document.createElement('style');
+  styleElement.id = 'achievement-styles';
+  styleElement.textContent = additionalStyles;
+  document.head.appendChild(styleElement);
+}
+
+// Fixed getTimeAgo function to handle Firebase timestamps
+function getTimeAgo(timestamp) {
+  if (!timestamp) return 'now';
+  
+  const now = new Date();
+  let time;
+  
+  // Handle Firebase Timestamp
+  if (timestamp && timestamp.toDate) {
+    time = timestamp.toDate();
+  } else if (timestamp && timestamp.seconds) {
+    time = new Date(timestamp.seconds * 1000);
+  } else if (typeof timestamp === 'string') {
+    time = new Date(timestamp);
+  } else {
+    return 'now';
+  }
+  
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return time.toLocaleDateString();
+}
+
+// Fixed checkAchievements function
+async function checkAchievements(context, data = {}) {
+  if (!currentUser || !currentUser.id) {
+    console.log('No current user or user ID for achievements:', currentUser);
+    return;
+  }
+  
+  console.log('Checking achievements:', context, data);
+  const { name: userName, team: teamName, id: userId } = currentUser;
+  
+  // Validate that we have all required user data
+  if (!userId || !userName) {
+    console.log('Missing required user data:', { userId, userName });
+    return;
+  }
+  
+  switch (context) {
+    case 'user_started':
+      // Record when user started the challenge
+      userStartTime = Date.now();
+      console.log('User started at:', userStartTime);
+      break;
+      
+    case 'task_started':
+      // Record when user started a specific task
+      if (data.taskId) {
+        taskStartTimes[data.taskId] = Date.now();
+        console.log('Task started:', data.taskId, 'at:', taskStartTimes[data.taskId]);
+      }
+      break;
+      
+    case 'task_completed':
+      console.log('Task completed:', data.taskId);
+      // Baby Steps - Complete Task 1
+      if (data.taskId === 'task1') {
+        await unlockAchievement('baby_steps', userId, userName, teamName);
+      }
+      if (data.taskId === 'task4' && data.taskHintsUsed === 0) {
+         console.log('Task 4 completed with no hints - unlocking social_butterfly');
+         await unlockAchievement('social_butterfly', userId, userName, teamName);
+      }
+      // Crypto Bro - Complete Task 3 in 30 minutes or less
+      if (data.taskId === 'task3') {
+        const taskStartTime = taskStartTimes['task3'];
+        if (taskStartTime) {
+          const timeSpent = (Date.now() - taskStartTime) / 1000 / 60; // minutes
+          console.log('Task 3 completed in:', timeSpent, 'minutes');
+          if (timeSpent <= 30) {
+            await unlockAchievement('crypto_bro', userId, userName, teamName);
+          }
+        }
+      }
+      
+      // No Hint Hero - Complete a task with no hints
+      if (data.taskHintsUsed === 0) {
+        console.log('Task completed with no hints');
+        await unlockAchievement('no_hint_hero', userId, userName, teamName);
+      }
+      
+      // COMPLETED THE GAUNTLET - Complete all tasks
+      if (data.completedCount === 6) {
+        await unlockAchievement('gauntlet_complete', userId, userName, teamName);
+        
+        // ANY% Speed Run - Complete within an hour
+        if (userStartTime) {
+          const totalTime = (Date.now() - userStartTime) / 1000 / 60 / 60; // hours
+          console.log('Total completion time:', totalTime, 'hours');
+          if (totalTime <= 1) {
+            await unlockAchievement('speedrun_hour', userId, userName, teamName);
+          }
+        }
+      }
+      break;
+      
+    case 'hint_used':
+      console.log('Hint used, total count:', data.hintCount);
+      // Helping Hand (Cheater) - Use first hint
+      if (data.hintCount === 1) {
+        console.log('First hint used - unlocking helping_hand');
+        await unlockAchievement('helping_hand', userId, userName, teamName);
+      }
+      
+      // This is getting embarrassing - Use more than 15 hints
+      if (data.hintCount > 15) {
+        console.log('More than 15 hints used - unlocking hint_addict');
+        await unlockAchievement('hint_addict', userId, userName, teamName);
+      }
+      break;
+      
+    case 'answer_wrong':
+      // King of Getting Answers Wrong - Have more than 5 wrong answers
+      totalWrongAnswers++;
+      console.log('Wrong answer, total count:', totalWrongAnswers);
+      if (totalWrongAnswers > 5) {
+        await unlockAchievement('wrong_king', userId, userName, teamName);
+      }
+      break;
+    
+    case 'leaderboard_viewed':
+      // Leaderboard Stalker - Check leaderboard 15+ times
+      leaderboardViewCount++;
+      console.log('Leaderboard viewed, count:', leaderboardViewCount);
+      if (leaderboardViewCount === 15) {
+        console.log('15 leaderboard views - unlocking leaderboard_stalker');
+        await unlockAchievement('leaderboard_stalker', userId, userName, teamName);
+      }
+      break;
+  }
+}
+
+// FIXED: Updated user progress tracking with single document per user
+async function updateUserProgress(userId, taskId, completed, hints, attempts) {
+  try {
+    // Use a single document per user in userProgress collection
+    const userProgressRef = db.collection('userProgress').doc(userId);
+    
+    await userProgressRef.set({
+      userId: userId,
+      totalHints: hints,  // Store the current TOTAL hints
+      completedTasks: firebase.firestore.FieldValue.arrayUnion(taskId), // Track completed tasks
+      tasks: {
+        [taskId]: {
+          completed: completed,
+          attempts: attempts,
+          completedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }
+      },
+      lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    
+    // Update user's last active time
+    await db.collection('users').doc(userId).update({
+      lastActive: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update session timestamp to keep it fresh
+    const currentSession = loadUserSession();
+    if (currentSession && currentSession.id === userId) {
+      currentSession.timestamp = Date.now();
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(currentSession));
+    }
+  } catch (error) {
+    console.error('Error updating progress:', error);
+  }
+}
+
+// NEW REAL-TIME LEADERBOARD FUNCTIONS
+function initializeLeaderboard() {
+  if (isLeaderboardInitialized) return;
+  isLeaderboardInitialized = true;
+  
+  console.log('Initializing real-time leaderboard...');
+  
+  // Listen to user progress changes only
+  leaderboardListener = db.collection('userProgress')
+    .onSnapshot((snapshot) => {
+      snapshot.docChanges().forEach((change) => {
+        const userId = change.doc.id;
+        const data = change.doc.data();
+        
+        if (change.type === 'added' || change.type === 'modified') {
+          // Update our local data
+          if (!leaderboardData.has(userId)) {
+            // Need to fetch user info once
+            db.collection('users').doc(userId).get().then(userDoc => {
+              if (userDoc.exists) {
+                const userData = userDoc.data();
+                leaderboardData.set(userId, {
+                  id: userId,
+                  name: userData.name,
+                  team: userData.team || 'Solo',
+                  completedTasks: (data.completedTasks || []).length,
+                  totalHints: data.totalHints || 0,
+                  startTime: userData.startTime
+                });
+                updateLeaderboardDisplay();
+              }
+            });
+          } else {
+            // Just update progress data
+            const existing = leaderboardData.get(userId);
+            existing.completedTasks = (data.completedTasks || []).length;
+            existing.totalHints = data.totalHints || 0;
+            updateLeaderboardDisplay();
+          }
+        }
+      });
+    });
+  
+  // Initial load of all users (one-time cost)
+  loadInitialLeaderboardData();
+}
+
+async function loadInitialLeaderboardData() {
+  try {
+    // Load all users once
+    const users = await db.collection('users').get();
+    const userProgress = await db.collection('userProgress').get();
+    
+    // Build progress map
+    const progressMap = new Map();
+    userProgress.forEach(doc => {
+      progressMap.set(doc.id, doc.data());
+    });
+    
+    // Populate leaderboard data
+    users.forEach(doc => {
+      const userData = doc.data();
+      const progress = progressMap.get(doc.id) || {};
+      
+      leaderboardData.set(doc.id, {
+        id: doc.id,
+        name: userData.name,
+        team: userData.team || 'Solo',
+        completedTasks: (progress.completedTasks || []).length,
+        totalHints: progress.totalHints || 0,
+        startTime: userData.startTime
+      });
+    });
+    
+    updateLeaderboardDisplay();
+  } catch (error) {
+    console.error('Error loading initial data:', error);
+  }
+}
+
+function updateLeaderboardDisplay() {
+  // Only update if modal is open
+  const dashboardModal = document.getElementById('dashboardModal');
+  if (!dashboardModal.classList.contains('active')) return;
+  
+  // Convert map to sorted array
+  const sortedLeaderboard = Array.from(leaderboardData.values()).sort((a, b) => {
+    if (b.completedTasks !== a.completedTasks) {
+      return b.completedTasks - a.completedTasks;
+    }
+    return a.totalHints - b.totalHints;
+  });
+  
+  // Update DOM
+  const leaderboardContent = document.getElementById('leaderboardContent');
+  const currentUserHasUnlockedTask6 = currentUser && gameInstance && gameInstance.completedTasks['task5'];
+  const displayTotal = currentUserHasUnlockedTask6 ? 6 : 5;
+  
+  let html = `
+    <div style="text-align: right; margin-bottom: 1rem; color: #666;">
+      🔴 Live Updates Enabled
+    </div>
+    <table class="leaderboard-table">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Name</th>
+          <th>Team</th>
+          <th>Tasks Completed</th>
+          <th>Hints Used</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+  
+  sortedLeaderboard.forEach((user, index) => {
+    const isCurrentUser = currentUser && user.id === currentUser.id;
+    const displayedCompleted = Math.min(user.completedTasks, displayTotal);
+    
+    html += `
+      <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
+        <td>${index + 1}</td>
+        <td>${escapeHtml(user.name)}${isCurrentUser ? ' (You)' : ''}</td>
+        <td>${escapeHtml(user.team)}</td>
+        <td>${displayedCompleted}/${displayTotal}</td>
+        <td>${user.totalHints}</td>
+      </tr>
+    `;
+  });
+  
+  html += '</tbody></table>';
+  leaderboardContent.innerHTML = html;
+}
+
+// REPLACED OLD loadLeaderboard function with real-time version
+async function loadLeaderboard() {
+  // This function is kept for compatibility but now just returns the real-time data
+  return Array.from(leaderboardData.values()).sort((a, b) => {
+    if (b.completedTasks !== a.completedTasks) {
+      return b.completedTasks - a.completedTasks;
+    }
+    return a.totalHints - b.totalHints;
+  });
+}
+
+function setupTeamSelection() {
+  const teamModal = document.getElementById('teamModal');
+  const teamNameInput = document.getElementById('teamNameInput');
+  const teamConfirmBtn = document.getElementById('teamConfirmBtn');
+  
+  // Enable/disable confirm button based on input
+  teamNameInput.addEventListener('input', () => {
+    teamConfirmBtn.disabled = !teamNameInput.value.trim();
+  });
+  
+  // Allow Enter key to submit
+  teamNameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && teamNameInput.value.trim()) {
+      teamConfirmBtn.click();
+    }
+  });
+  
+  // Focus on input when modal opens
+  const observer = new MutationObserver((mutations) => {
+    mutations.forEach((mutation) => {
+      if (mutation.target.classList.contains('active')) {
+        setTimeout(() => teamNameInput.focus(), 100);
+      }
+    });
+  });
+  
+  observer.observe(teamModal, { attributes: true, attributeFilter: ['class'] });
+  
+  teamConfirmBtn.addEventListener('click', async () => {
+    const teamName = sanitizeInput(teamNameInput.value);
+    
+    if (!teamName) {
+      alert('Please enter a team name');
+      return;
+    }
+    
+    const success = await updateUserTeam(currentUser.id, teamName);
+    
+    if (success) {
+      // Update display
+      const userDisplay = document.getElementById('userDisplay');
+      userDisplay.textContent = `${currentUser.name} (${teamName})`;
+      
+      teamModal.classList.remove('active');
+      proceedWithChallengeStart();
+    } else {
+      alert('Error updating team. Please try again.');
+    }
+  });
+}
+
+// Login functionality with countdown
+document.addEventListener('DOMContentLoaded', async () => {
+  const loginForm = document.getElementById('loginForm');
+  const loginModal = document.getElementById('loginModal');
+  const userInfo = document.getElementById('userInfo');
+  const userDisplay = document.getElementById('userDisplay');
+  const dashboardBtn = document.getElementById('dashboardBtn');
+  const dashboardModal = document.getElementById('dashboardModal');
+  const closeDashboard = document.getElementById('closeDashboard');
+  const countdownOverlay = document.getElementById('countdownOverlay');
+  const countdownUserInfo = document.getElementById('countdownUserInfo');
+  const countdownUserDisplay = document.getElementById('countdownUserDisplay');
+  const countdownBriefingBtn = document.getElementById('countdownBriefingBtn');
+  const teamFieldContainer = document.getElementById('teamFieldContainer');
+  const formNote = document.getElementById('formNote');
+  
+  // Setup team selection handlers
+  setupTeamSelection();
+  
+  // Check challenge status from server
+  const status = await checkChallengeStatus();
+  
+  // Update form based on challenge status
+  if (status.started) {
+    // Challenge already started, show team field
+    teamFieldContainer.style.display = 'block';
+    formNote.style.display = 'none';
+  } else {
+    // Challenge hasn't started, hide team field and show note
+    teamFieldContainer.style.display = 'none';
+    formNote.style.display = 'block';
+  }
+  
+  if (status.started) {
+    // Challenge already started, proceed normally
+    const existingSession = loadUserSession();
+    if (existingSession) {
+      // Restore user session
+      currentUser = existingSession;
+      loginModal.classList.remove('active');
+      userInfo.classList.add('active');
+      userDisplay.textContent = `${existingSession.name}${existingSession.team ? ` (${existingSession.team})` : ''}`;
+      
+      //Initialize the main challenge immediately
+      initializeGame();
+    }
+  } else {
+    // Challenge hasn't started yet
+    const existingSession = loadUserSession();
+    if (existingSession && localStorage.getItem(COUNTDOWN_STORAGE_KEY)) {
+      // User already registered before start
+      currentUser = existingSession;
+      loginModal.classList.remove('active');
+      
+      // Show countdown with user info
+      countdownOverlay.classList.add('active');
+      countdownUserInfo.style.display = 'block';
+      countdownUserDisplay.textContent = `Registered as: ${existingSession.name}`;
+      
+      // Start countdown
+      updateCountdown();
+      countdownInterval = setInterval(updateCountdown, 1000);
+      
+      // Start lobby system
+      lobbySystem = new LobbySystem();
+      lobbySystem.start();
+    }
+    // Otherwise, show login modal as normal
+  }
+  
+  loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('userName').value.trim();
+    const team = document.getElementById('userTeam').value.trim();
+    
+    if (!name) {
+      document.getElementById('loginError').textContent = 'Please enter your name';
+      return;
+    }
+    
+    // Check current status again
+    const currentStatus = await checkChallengeStatus();
+    const isPreRegistration = !currentStatus.started;
+    
+    // Only pass team if challenge has started
+    const teamToSave = isPreRegistration ? 'Solo' : team;
+    const userId = await saveUserToFirebase(name, teamToSave, isPreRegistration);
+    
+    if (userId) {
+      currentUser = { id: userId, name, team: teamToSave };
+      loginModal.classList.remove('active');
+      
+      if (isPreRegistration) {
+        // Show countdown overlay
+        countdownOverlay.classList.add('active');
+        countdownUserInfo.style.display = 'block';
+        countdownUserDisplay.textContent = `Registered as: ${name}`;
+        
+        // Start countdown
+        updateCountdown();
+        countdownInterval = setInterval(updateCountdown, 1000);
+        
+        // Start lobby system
+        lobbySystem = new LobbySystem();
+        lobbySystem.start();
+      } else {
+        // Challenge already started, proceed normally
+        userInfo.classList.add('active');
+        userDisplay.textContent = `${name}${team ? ` (${team})` : ''}`;
+        
+        //Initialize the main challenge
+        initializeGame();
+      }
+    } else {
+      document.getElementById('loginError').textContent = 'Error starting challenge. Please try again.';
+    }
+  });
+  
+  // Countdown briefing button - use separate modal
+  countdownBriefingBtn.addEventListener('click', () => {
+    const countdownBriefingModal = document.getElementById('countdownBriefingModal');
+    countdownBriefingModal.classList.add('active');
+  });
+
+  // Add event listener for closing the countdown briefing modal
+  document.getElementById('countdownBriefingClose').addEventListener('click', () => {
+    document.getElementById('countdownBriefingModal').classList.remove('active');
+  });
+
+  // Close countdown briefing on click outside
+  document.getElementById('countdownBriefingModal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) {
+      e.currentTarget.classList.remove('active');
+    }
+  });
+  
+  // UPDATED Dashboard functionality with real-time listener
+  dashboardBtn.addEventListener('click', () => {
+    dashboardModal.classList.add('active');
+
+   // Track leaderboard view for achievement
+   checkAchievements('leaderboard_viewed');
+   saveLeaderboardViewCount();
+   
+    // Initialize listener on first open
+    if (!isLeaderboardInitialized) {
+      initializeLeaderboard();
+    } else {
+      // Just update display with existing data
+      updateLeaderboardDisplay();
+    }
+  });
+  
+  closeDashboard.addEventListener('click', () => {
+    dashboardModal.classList.remove('active');
+  });
+  
+  // Briefing functionality
+  const briefingBtn = document.getElementById('briefingBtn');
+  const briefingDropdown = document.getElementById('briefingDropdown');
+  const briefingClose = document.getElementById('briefingClose');
+
+  function toggleBriefing() {
+    const isVisible = briefingDropdown.style.display === 'block';
+    briefingDropdown.style.display = isVisible ? 'none' : 'block';
+    
+    // Reset position if it was moved for countdown
+    if (briefingDropdown.style.position === 'fixed') {
+      briefingDropdown.style.position = '';
+      briefingDropdown.style.top = '';
+      briefingDropdown.style.left = '';
+      briefingDropdown.style.transform = '';
+      briefingDropdown.style.zIndex = '';
+    }
+  }
+
+  function closeBriefing() {
+    briefingDropdown.style.display = 'none';
+  }
+
+  briefingBtn.addEventListener('click', toggleBriefing);
+  briefingClose.addEventListener('click', closeBriefing);
+
+  // Close briefing when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!briefingBtn.contains(e.target) && 
+        !briefingDropdown.contains(e.target) && 
+        !countdownBriefingBtn.contains(e.target)) {
+      closeBriefing();
+    }
+  });
+
+  // Close briefing on escape key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeBriefing();
+      if (dashboardModal.classList.contains('active')) {
+        dashboardModal.classList.remove('active');
+      }
+      // Also close countdown briefing modal
+      const countdownBriefingModal = document.getElementById('countdownBriefingModal');
+      if (countdownBriefingModal.classList.contains('active')) {
+        countdownBriefingModal.classList.remove('active');
+      }
+    }
+  });
+});
+ 
+function loadLeaderboardViewCount() {
+  try {
+    const saved = localStorage.getItem(CONFIG.STORAGE_KEY + '_leaderboard_views');
+    return saved ? parseInt(saved) : 0;
+  } catch (e) {
+    console.error('Failed to load leaderboard view count:', e);
+    return 0;
+  }
+}
+
+function saveLeaderboardViewCount() {
+  try {
+    localStorage.setItem(CONFIG.STORAGE_KEY + '_leaderboard_views', leaderboardViewCount.toString());
+  } catch (e) {
+    console.error('Failed to save leaderboard view count:', e);
+  }
+}
+// Game state management
+class OSINTChallenge {
+  constructor() {
+    this.completedTasks = this.loadProgress();
+    this.attemptCounts = {};
+    this.questionAttempts = {}; // Track attempts per question
+    this.hintClickCount = this.loadHintCount();
+    this.taskHintsUsed = {}; // Track hints used per task
+    this.taskListEl = document.getElementById('taskList');
+    this.hintCountEl = document.getElementById('hintCount');
+    this.init();
+  }
+
+  init() {
+    this.checkIntegrity();
+    this.createTasksUI();
+    this.updateProgress();
+    this.updateHintCounter();
+  }
+
+  checkIntegrity() {
+    if (tasks.length !== 6) {
+      console.warn('Task integrity check failed');
+    }
+  }
+
+  loadProgress() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      return saved ? JSON.parse(saved) : {};
+    } catch (e) {
+      console.error('Failed to load progress:', e);
+      return {};
+    }
+  }
+
+  loadHintCount() {
+    try {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY + '_hints');
+      return saved ? parseInt(saved) : 0;
+    } catch (e) {
+      console.error('Failed to load hint count:', e);
+      return 0;
+    }
+  }
+
+  saveProgress() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(this.completedTasks));
+    } catch (e) {
+      console.error('Failed to save progress:', e);
+    }
+  }
+
+  saveHintCount() {
+    try {
+      localStorage.setItem(CONFIG.STORAGE_KEY + '_hints', this.hintClickCount.toString());
+    } catch (e) {
+      console.error('Failed to save hint count:', e);
+    }
+  }
+
+  updateHintCounter() {
+    if (this.hintCountEl) {
+      this.hintCountEl.textContent = this.hintClickCount;
+    }
+  }
+
+  updateProgress() {
+    const completed = Object.keys(this.completedTasks).length;
+    const isTask6Unlocked = this.completedTasks['task5'];
+    const visibleTotal = isTask6Unlocked ? 6 : 5;
+    const percentage = (completed / visibleTotal) * 100;
+    
+    const progressFill = document.getElementById('progressFill');
+    const progressText = document.getElementById('progressText');
+    
+    progressFill.style.width = `${percentage}%`;
+    progressText.textContent = `${completed} of ${visibleTotal} tasks completed`;
+    
+    if (isTask6Unlocked && !document.querySelector('[data-task-id="task6"]').style.display !== 'none') {
+      progressText.textContent += ' 🎁 Bonus task unlocked!';
+    }
+  }
+
+  createTasksUI() {
+    tasks.forEach((task, index) => {
+      const li = document.createElement('li');
+      li.classList.add('task');
+      li.dataset.taskId = task.id;
+      li.setAttribute('role', 'button');
+      li.setAttribute('tabindex', '0');
+
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        li.style.display = 'none';
+      }
+
+      if (this.completedTasks[task.id]) {
+        li.classList.add('completed');
+      }
+
+      const titleDiv = document.createElement('div');
+      titleDiv.className = 'task-title';
+      
+      const titleText = document.createElement('span');
+      titleText.textContent = task.title;
+      
+      const statusDiv = document.createElement('div');
+      statusDiv.className = 'task-status';
+      
+      const badge = document.createElement('span');
+      badge.className = 'task-badge';
+      
+      if (this.completedTasks[task.id]) {
+        badge.textContent = 'Completed';
+        badge.classList.add('completed');
+      } else if (index > 0 && !this.completedTasks[tasks[index - 1]?.id]) {
+        badge.textContent = 'Locked';
+        badge.classList.add('locked');
+        li.classList.add('locked');
+      } else {
+        badge.textContent = 'Available';
+      }
+      
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.innerHTML = '▼';
+      
+      statusDiv.appendChild(badge);
+      statusDiv.appendChild(arrow);
+      titleDiv.appendChild(titleText);
+      titleDiv.appendChild(statusDiv);
+      li.appendChild(titleDiv);
+
+      const contentDiv = document.createElement('div');
+      contentDiv.className = 'task-content';
+
+      if (task.description) {
+        const descP = document.createElement('p');
+        descP.style.fontStyle = 'italic';
+        descP.style.color = '#999';
+        descP.style.marginBottom = '1rem';
+        descP.textContent = task.description;
+        contentDiv.appendChild(descP);
+      }
+
+      //Initialise task hints counter
+      this.taskHintsUsed[task.id] = 0;
+
+      // Questions with individual hint buttons
+      task.questions.forEach((q, i) => {
+        const questionContainer = document.createElement('div');
+        questionContainer.className = 'question-container';
+        
+        const questionHeader = document.createElement('div');
+        questionHeader.className = 'question-header';
+        
+        const questionP = document.createElement('p');
+        questionP.className = 'question';
+        questionP.innerHTML = q;
+        
+        const hintBtn = document.createElement('button');
+        hintBtn.textContent = 'Hint';
+        hintBtn.className = 'hint-btn';
+        hintBtn.setAttribute('aria-label', `Show hint for question ${i + 1}`);
+        hintBtn.dataset.questionIndex = i;
+        
+        questionHeader.appendChild(questionP);
+        questionHeader.appendChild(hintBtn);
+        
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.autocomplete = 'off';
+        input.id = `${task.id}_q${i}`;
+        input.setAttribute('aria-label', `Answer for question ${i + 1}`);
+        
+        const hintText = document.createElement('div');
+        hintText.className = 'hint-text';
+        hintText.id = `${task.id}_hint${i}`;
+        
+        questionContainer.appendChild(questionHeader);
+        questionContainer.appendChild(input);
+        questionContainer.appendChild(hintText);
+        
+        contentDiv.appendChild(questionContainer);
+        
+        // Hint button handler
+        hintBtn.addEventListener('click', () => this.showQuestionHint(task, i, hintText, hintBtn));
+      });
+
+      // Submit button
+      const submitBtn = document.createElement('button');
+      submitBtn.textContent = 'Submit';
+      submitBtn.className = 'submit-btn';
+      submitBtn.setAttribute('aria-label', 'Submit answers');
+      contentDiv.appendChild(submitBtn);
+
+      // Feedback
+      const feedbackP = document.createElement('p');
+      feedbackP.className = 'feedback';
+      feedbackP.setAttribute('aria-live', 'polite');
+      contentDiv.appendChild(feedbackP);
+
+      li.appendChild(contentDiv);
+
+      // Event handlers
+      this.setupEventHandlers(li, task, index, submitBtn, feedbackP);
+
+      this.taskListEl.appendChild(li);
+    });
+  }
+
+  setupEventHandlers(li, task, index, submitBtn, feedbackP) {
+    const titleDiv = li.querySelector('.task-title');
+    const contentDiv = li.querySelector('.task-content');
+
+    const toggleTask = () => {
+      if (this.isTaskLocked(task, index)) {
+        this.showFeedback(feedbackP, 'You need to complete the previous task first!', 'error');
+        return;
+      }
+
+      if (task.hiddenUntil && !this.completedTasks[task.hiddenUntil]) {
+        this.showFeedback(feedbackP, 'This task is not yet available!', 'error');
+        return;
+      }
+
+      const isOpen = li.classList.contains('open');
+      
+      document.querySelectorAll('li.task.open').forEach(openLi => {
+        if (openLi !== li) {
+          openLi.classList.remove('open');
+          openLi.querySelector('.task-content').style.display = 'none';
+        }
+      });
+
+      if (isOpen) {
+        li.classList.remove('open');
+        contentDiv.style.display = 'none';
+      } else {
+        li.classList.add('open');
+        contentDiv.style.display = 'block';
+        contentDiv.querySelector('input')?.focus();
+        
+        // Mark task as started for achievement tracking
+        checkAchievements('task_started', { taskId: task.id });
+      }
+    };
+
+    titleDiv.addEventListener('click', toggleTask);
+    titleDiv.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleTask();
+      }
+    });
+
+    contentDiv.addEventListener('click', e => e.stopPropagation());
+
+    submitBtn.addEventListener('click', () => this.handleSubmit(task, feedbackP, submitBtn));
+
+    contentDiv.querySelectorAll('input').forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.handleSubmit(task, feedbackP, submitBtn);
+        }
+      });
+    });
+  }
+
+  isTaskLocked(task, index) {
+    return index > 0 && !this.completedTasks[tasks[index - 1]?.id];
+  }
+
+  async showQuestionHint(task, questionIndex, hintText, hintBtn) {
+    // Initialize question attempts if not exists
+    const questionKey = `${task.id}_q${questionIndex}`;
+    if (!this.questionAttempts[questionKey]) {
+      this.questionAttempts[questionKey] = 0;
+    }
+    
+    const attemptCount = this.questionAttempts[questionKey];
+    
+    if (hintText.style.display === 'block') {
+      hintText.style.display = 'none';
+      hintBtn.textContent = 'Hint';
+    } else {
+      try {
+        // Fetch hint from API
+        const response = await fetch(CONFIG.API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'getHint',
+            userId: currentUser?.id || 'anonymous',
+            userName: currentUser?.name || '',
+            team: currentUser?.team || 'Solo',
+            hintRequest: {
+              taskId: task.id,
+              questionIndex: questionIndex,
+              attemptCount: attemptCount
+            }
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to fetch hint');
+        }
+
+        const result = await response.json();
+        
+        // Increment hint counter
+        this.hintClickCount++;
+        this.taskHintsUsed[task.id]++;
+        this.saveHintCount();
+        this.updateHintCounter();
+        
+        // Check for hint achievements
+        console.log('Checking hint achievements, hint count:', this.hintClickCount);
+        checkAchievements('hint_used', { hintCount: this.hintClickCount });
+        
+        hintText.textContent = result.hint;
+        hintText.style.display = 'block';
+        hintBtn.textContent = 'Hide';
+      } catch (error) {
+        console.error('Error fetching hint:', error);
+        hintText.textContent = 'Unable to load hint. Please try again.';
+        hintText.style.display = 'block';
+      }
+    }
+  }
+async checkAndClaimFirstBlood() {
+  if (!currentUser) return false;
+  
+  try {
+    // Use a Firestore transaction to ensure atomicity
+    const firstBloodRef = db.collection('gameState').doc('firstBlood');
+    
+    const result = await db.runTransaction(async (transaction) => {
+      const doc = await transaction.get(firstBloodRef);
+      
+      if (!doc.exists || !doc.data().claimed) {
+        // First blood not claimed yet!
+        transaction.set(firstBloodRef, {
+          claimed: true,
+          userId: currentUser.id,
+          userName: currentUser.name,
+          teamName: currentUser.team || 'Solo',
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true; // We got first blood!
+      }
+      
+      return false; // Someone else already has it
+    });
+    
+    if (result) {
+      // Award the achievement
+      await unlockAchievement('first_blood', currentUser.id, currentUser.name, currentUser.team);
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Error checking first blood:', error);
+    return false;
+  }
+}
+// Update your handleSubmit method in the OSINTChallenge class
+async handleSubmit(task, feedbackP, submitBtn) {
+  const inputs = Array.from(document.querySelectorAll(`input[id^="${task.id}_q"]`));
+  const answers = inputs.map(inp => sanitizeInput(inp.value));
+
+  if (answers.some(answer => !answer)) {
+    this.showFeedback(feedbackP, 'Please fill in all fields.', 'error');
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.classList.add('loading');
+  submitBtn.textContent = '';
+
+  try {
+    // Call Val.town API for validation
+    const response = await fetch(CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        taskId: task.id,
+        answers: answers,
+        userId: currentUser?.id || 'anonymous',
+        userName: currentUser?.name || '',
+        team: currentUser?.team || 'Solo'
+      })
+    });
+
+    if (response.status === 403) {
+      const data = await response.json();
+      this.showFeedback(feedbackP, 'Challenge has not started yet!', 'error');
+      console.log(`Challenge starts at: ${data.startsAt}`);
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error('Validation failed');
+    }
+
+    const result = await response.json();
+    const allCorrect = result.allCorrect;
+    
+    if (allCorrect) {
+      if (this.completedTasks[task.id]) {
+        this.showFeedback(feedbackP, 'Task already completed! 🎉', 'info');
+      } else {
+        // Mark task as completed
+        this.completedTasks[task.id] = {
+          completed: true,
+          timestamp: new Date().toISOString(),
+          attempts: (this.attemptCounts[task.id] || 0) + 1
+        };
+        this.saveProgress();
+        
+        // Check for First Blood BEFORE updating Firebase
+        const isFirstBlood = await this.checkAndClaimFirstBlood();
+        
+        if (isFirstBlood) {
+          this.showFeedback(feedbackP, 'FIRST BLOOD! You\'re the first to complete a task! 🩸🎉', 'success');
+          // Extra fireworks for first blood!
+          this.launchFireworks();
+          setTimeout(() => this.launchFireworks(), 500);
+          setTimeout(() => this.launchFireworks(), 1000);
+        } else {
+          this.showFeedback(feedbackP, 'Correct! Task completed! 🎉', 'success');
+          this.launchFireworks();
+        }
+        
+        this.updateTaskStatus(task.id);
+        this.updateProgress();
+        this.unlockNextTask(task);
+        
+        // Check for task completion achievements
+        const taskHintsUsed = this.taskHintsUsed[task.id] || 0;
+        checkAchievements('task_completed', { 
+          taskId: task.id, 
+          completedCount: Object.keys(this.completedTasks).length,
+          attempts: this.attemptCounts[task.id] || 1,
+          hintsUsed: this.hintClickCount,
+          taskHintsUsed: taskHintsUsed,
+          firstBlood: isFirstBlood
+        });
+        
+        // Update Firebase with TOTAL hints count
+        if (currentUser) {
+          await updateUserProgress(
+            currentUser.id,
+            task.id,
+            true,
+            this.hintClickCount,
+            this.attemptCounts[task.id] || 1
+          );
+        }
+      }
+    } else {
+      // Increment attempt counts for incorrect questions
+      result.results.forEach((correct, index) => {
+        if (!correct) {
+          const questionKey = `${task.id}_q${index}`;
+          this.questionAttempts[questionKey] = (this.questionAttempts[questionKey] || 0) + 1;
+        }
+      });
+      
+      this.attemptCounts[task.id] = (this.attemptCounts[task.id] || 0) + 1;
+      
+      const incorrectCount = result.results.filter(r => !r).length;
+      this.showFeedback(feedbackP, `${incorrectCount} answer(s) incorrect. Check the hints for help!`, 'error');
+      
+      // Track wrong answers for achievements
+      checkAchievements('answer_wrong', { wrongCount: incorrectCount });
+    }
+  } catch (error) {
+    this.showFeedback(feedbackP, 'An error occurred. Please try again.', 'error');
+    console.error('Validation error:', error);
+  } finally {
+    setTimeout(() => {
+      submitBtn.disabled = false;
+      submitBtn.classList.remove('loading');
+      submitBtn.textContent = 'Submit';
+    }, 1000);
+  }
+}
+  showFeedback(feedbackEl, message, type) {
+    feedbackEl.textContent = message;
+    feedbackEl.className = `feedback ${type}`;
+  }
+
+  updateTaskStatus(taskId) {
+    const taskEl = document.querySelector(`[data-task-id="${taskId}"]`);
+    if (taskEl) {
+      taskEl.classList.add('completed');
+      const badge = taskEl.querySelector('.task-badge');
+      badge.textContent = 'Completed';
+      badge.classList.add('completed');
+    }
+  }
+
+  unlockNextTask(currentTask) {
+    const currentIndex = tasks.findIndex(t => t.id === currentTask.id);
+    if (currentIndex < tasks.length - 1) {
+      const nextTask = tasks[currentIndex + 1];
+      const nextTaskEl = document.querySelector(`[data-task-id="${nextTask.id}"]`);
+      if (nextTaskEl) {
+        nextTaskEl.style.display = 'list-item';
+        nextTaskEl.classList.remove('locked');
+        const badge = nextTaskEl.querySelector('.task-badge');
+        badge.textContent = 'Available';
+        badge.classList.remove('locked');
+      }
+    }
+
+    tasks.forEach(task => {
+      if (task.hiddenUntil === currentTask.id) {
+        const hiddenTaskEl = document.querySelector(`[data-task-id="${task.id}"]`);
+        if (hiddenTaskEl) {
+          hiddenTaskEl.style.display = 'list-item';
+          hiddenTaskEl.classList.add('bonus');
+        }
+      }
+    });
+  }
+
+  launchFireworks() {
+    const canvas = document.getElementById('fireworks');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    const particles = Array.from({ length: CONFIG.FIREWORKS_PARTICLES }, () => ({
+      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
+      y: canvas.height / 2 + (Math.random() - 0.5) * 200,
+      radius: Math.random() * 4 + 1,
+      color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+      angle: Math.random() * 2 * Math.PI,
+      speed: Math.random() * 8 + 3,
+      alpha: 1,
+      decay: 0.015 + Math.random() * 0.02,
+      gravity: 0.1
+    }));
+
+    function animate() {
+      ctx.fillStyle = 'rgba(0,0,0,0.1)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      particles.forEach((particle, index) => {
+        particle.x += Math.cos(particle.angle) * particle.speed;
+        particle.y += Math.sin(particle.angle) * particle.speed + particle.gravity;
+        particle.speed *= 0.99;
+        particle.alpha -= particle.decay;
+        particle.gravity += 0.02;
+
+        if (particle.alpha <= 0) {
+          particles.splice(index, 1);
+          return;
+        }
+
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.radius, 0, 2 * Math.PI);
+        ctx.fillStyle = particle.color;
+        ctx.fill();
+        ctx.restore();
+      });
+
+      if (particles.length > 0) {
+        requestAnimationFrame(animate);
+      } else {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+    }
+
+    animate();
+    
+    setTimeout(() => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }, CONFIG.ANIMATION_DURATION);
+  }
+}
+
+// Clean up listeners on page unload
+window.addEventListener('beforeunload', async () => {
+  if (lobbySystem) {
+    await lobbySystem.cleanup();
+  }
+  if (leaderboardListener) {
+    leaderboardListener();
+  }
+  if (countdownInterval) {
+    clearInterval(countdownInterval);
+  }
+});
+
+window.addEventListener('resize', () => {
+  const canvas = document.getElementById('fireworks');
+  if (canvas) {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('li.task.open').forEach(li => {
+      li.classList.remove('open');
+      li.querySelector('.task-content').style.display = 'none';
+    });
+  }
+});
+
+setInterval(() => {
+  if (tasks.length !== 6) {
+    console.warn('Task integrity compromised');
+  }
+}, 5000);
+
+console.log(`
+  ╔═══════════════════════════════════╗
+  ║        OSINT Challenge            ║
+  ║                                   ║
+  ║   Looking for shortcuts? 🕵️       ║
+  ║   That's not very OSINT of you!   ║
+  ║                                   ║
+  ║   Happy investigating! 🔍         ║
+  ╚═══════════════════════════════════╝
+`);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,64 @@
+rules_version = '2';
+
+// The OSINT Gauntlet — Firestore security rules
+// ---------------------------------------------------------------------------
+// IMPORTANT: this game has no Firebase Authentication — every player is an
+// anonymous document. That means these rules CANNOT prove *who* is writing, so
+// they cannot, on their own, stop someone forging a leaderboard score.
+//
+// That is deliberate and acceptable here: the PRIZE is decided from the
+// Cloudflare Worker's server-side solve log (D1), which is tamper-proof. These
+// rules exist only to:
+//   • blunt stored-XSS by capping the length/type of player-supplied names
+//   • stop casual vandalism (wiping collections / deleting other players)
+//
+// To make the live board itself trustworthy later, add Firebase Anonymous Auth
+// and gate writes on request.auth.uid == the document owner.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function okName(v) { return v is string && v.size() > 0 && v.size() <= 40; }
+    function okTeam(v) { return v is string && v.size() <= 40; }
+
+    // Players / registration — public board data.
+    match /users/{userId} {
+      allow read: if true;
+      allow create, update: if okName(request.resource.data.name)
+                            && okTeam(request.resource.data.team);
+      allow delete: if false;
+    }
+
+    // Per-player progress (cosmetic board figures; prize uses the Worker log).
+    match /userProgress/{userId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // Achievement badges (cosmetic).
+    match /achievements/{doc} {
+      allow read: if true;
+      allow create: if true;
+      allow update, delete: if false;
+    }
+
+    // Live lobby presence — players add themselves and leave.
+    match /lobby/{userId} {
+      allow read: if true;
+      allow create, update: if okName(request.resource.data.name)
+                            && (!('team' in request.resource.data)
+                                || okTeam(request.resource.data.team));
+      allow delete: if true;   // leaving the lobby
+    }
+
+    // First-blood flag (claimed once via a transaction). Never deletable.
+    match /gameState/{doc} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
+
+    // Anything not matched above is denied by default.
+  }
+}
