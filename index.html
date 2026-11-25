@@ -1699,8 +1699,9 @@ body{ max-width:none!important; margin:0!important; display:block!important;
 .pane__title{ flex:0 0 auto; }
 .pane--tasks .task-list{ overflow-y:auto; flex:1 1 auto; }
 .detail-body{ overflow-y:auto; flex:1 1 auto; }
-/* name-only: hide the leaderboard Team column (3rd) */
+/* name-only: hide the leaderboard Team column (3rd) + any team field */
 .leaderboard-table th:nth-child(3), .leaderboard-table td:nth-child(3){ display:none!important; }
+#teamFieldContainer{ display:none!important; }
 </style>
 </head>
 <body>
@@ -3330,15 +3331,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const status = await checkChallengeStatus();
   
   // Update form based on challenge status
-  if (status.started) {
-    // Challenge already started, show team field
-    teamFieldContainer.style.display = 'block';
-    formNote.style.display = 'none';
-  } else {
-    // Challenge hasn't started, hide team field and show note
-    teamFieldContainer.style.display = 'none';
-    formNote.style.display = 'block';
-  }
+  // name-only registration: never show the team field or team note
+  teamFieldContainer.style.display = 'none';
+  formNote.style.display = 'none';
   
   if (status.started) {
     // Challenge already started, proceed normally
