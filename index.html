@@ -2026,6 +2026,12 @@ const ACHIEVEMENTS = {
     title: "Leaderboard Stalker",
     description: "Checked the leaderboard 15+ times",
     icon: "👀"
+  },
+   secret_unlocked: {
+    title: "Keeper of Secrets",
+    description: "Found all three secret codes and cracked the final puzzle",
+    icon: "🗝️",
+    special: "gold"
   }
 };
 
@@ -4093,6 +4099,7 @@ console.log(`
   const input = document.getElementById('cmdInput');
   const clockEl = document.getElementById('termClock');
   const history = []; let histIdx = -1;
+  let secretBusy = false;
 
   window.termEcho = function(text, cls){
     if (!out) return;
@@ -4124,6 +4131,7 @@ console.log(`
       echo('  leaderboard | lb      open the leaderboard');
       echo('  log | achievements    toggle achievements feed');
       echo('  briefing              show the briefing');
+      echo('  secret <code>         enter the combined secret code');
       echo('  whoami                your operative + team');
       echo('  clear                 clear this output');
       echo('(answers are also clickable/typeable in the panes above)', 'dim');
@@ -4169,6 +4177,60 @@ console.log(`
     log(){ document.querySelector('.achievements-panel')?.classList.toggle('open'); },
     achievements(){ this.log(); },
     briefing(){ document.getElementById('briefingBtn')?.click(); },
+    async secret(args){
+      if (!currentUser){ echo('register before entering the secret', 'err'); return; }
+      if (!args.length){ echo('usage: secret <A1><B1><C1>', 'err'); return; }
+      if (secretBusy) return;
+      const secretKey = CONFIG.STORAGE_KEY + '_secret';
+      let already = false;
+      try { already = !!localStorage.getItem(secretKey); } catch(e){}
+      secretBusy = true;
+      echo('verifying secret...', 'dim');
+      try {
+        const res = await fetch(CONFIG.API_ENDPOINT, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'checkSecret',
+            code: args.join('-'),
+            userId: currentUser.id,
+            userName: currentUser.name,
+            team: currentUser.team || 'Solo'
+          })
+        });
+        if (res.status === 403){ echo('challenge has not started yet', 'err'); return; }
+        if (!res.ok) throw new Error('verification failed');
+        const { correct } = await res.json();
+        if (!correct){
+          echo('ACCESS DENIED — the code is incorrect', 'err');
+          checkAchievements('answer_wrong', { wrongCount: 1 });
+          return;
+        }
+        [
+          '╔══════════════════════════════════════════╗',
+          '║          ACCESS GRANTED                  ║',
+          '║   The final puzzle is solved.            ║',
+          '║   You have uncovered every secret.       ║',
+          '╚══════════════════════════════════════════╝'
+        ].forEach(l => echo(l, 'ok'));
+        if (already){ echo('(you had already unlocked this)', 'dim'); return; }
+        try { localStorage.setItem(secretKey, new Date().toISOString()); } catch(e){}
+        gameInstance?.launchFireworks();
+        setTimeout(() => gameInstance?.launchFireworks(), 600);
+        await unlockAchievement('secret_unlocked', currentUser.id, currentUser.name, currentUser.team);
+        try {
+          await db.collection('userProgress').doc(currentUser.id).set({
+            secretUnlocked: true,
+            secretUnlockedAt: firebase.firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+        } catch(e){ console.error('Error saving secret progress:', e); }
+      } catch(e){
+        echo('error: could not verify the secret, try again', 'err');
+        console.error('Secret verification error:', e);
+      } finally {
+        secretBusy = false;
+      }
+    },
     whoami(){ echo(currentUser ? `operative: ${currentUser.name}` : 'not registered', 'ok'); },
     clear(){ out.innerHTML=''; },
     time(){ echo(new Date().toString()); }
