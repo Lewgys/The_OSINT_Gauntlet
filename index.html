@@ -1096,16 +1096,6 @@ body {
     color: #b0d351;
   }
   
-  canvas#fireworks {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 9999;
-  }
-  
   li.task.locked {
     cursor: not-allowed;
     opacity: 0.6;
@@ -1905,7 +1895,6 @@ body{ max-width:none!important; margin:0!important; display:block!important;
     </div>
   </section>
 </div>
-<canvas id="fireworks"></canvas>
 
 </div> <!-- End main-content -->
 
@@ -1953,8 +1942,6 @@ const db = firebase.firestore();
 // Configuration
 const CONFIG = {
   HASH_ROUNDS: 1000,
-  FIREWORKS_PARTICLES: 120,
-  ANIMATION_DURATION: 5000,
   STORAGE_KEY: 'osint_challenge_progress',
   // Cloudflare Worker that replaces val.town (deployed 2026-11-25).
   API_ENDPOINT: 'https://osint-gauntlet-api.osint-gauntlet-worker.workers.dev'
@@ -3816,13 +3803,8 @@ async handleSubmit(task, feedbackP, submitBtn) {
         
         if (isFirstBlood) {
           this.showFeedback(feedbackP, 'FIRST BLOOD! You\'re the first to complete a task! 🩸🎉', 'success');
-          // Extra fireworks for first blood!
-          this.launchFireworks();
-          setTimeout(() => this.launchFireworks(), 500);
-          setTimeout(() => this.launchFireworks(), 1000);
         } else {
           this.showFeedback(feedbackP, 'Correct! Task completed! 🎉', 'success');
-          this.launchFireworks();
         }
         
         this.updateTaskStatus(task.id);
@@ -3918,63 +3900,6 @@ async handleSubmit(task, feedbackP, submitBtn) {
       }
     });
   }
-
-  launchFireworks() {
-    const canvas = document.getElementById('fireworks');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-
-    const particles = Array.from({ length: CONFIG.FIREWORKS_PARTICLES }, () => ({
-      x: canvas.width / 2 + (Math.random() - 0.5) * 200,
-      y: canvas.height / 2 + (Math.random() - 0.5) * 200,
-      radius: Math.random() * 4 + 1,
-      color: `hsl(${Math.random() * 360}, 100%, 60%)`,
-      angle: Math.random() * 2 * Math.PI,
-      speed: Math.random() * 8 + 3,
-      alpha: 1,
-      decay: 0.015 + Math.random() * 0.02,
-      gravity: 0.1
-    }));
-
-    function animate() {
-      ctx.fillStyle = 'rgba(0,0,0,0.1)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      particles.forEach((particle, index) => {
-        particle.x += Math.cos(particle.angle) * particle.speed;
-        particle.y += Math.sin(particle.angle) * particle.speed + particle.gravity;
-        particle.speed *= 0.99;
-        particle.alpha -= particle.decay;
-        particle.gravity += 0.02;
-
-        if (particle.alpha <= 0) {
-          particles.splice(index, 1);
-          return;
-        }
-
-        ctx.save();
-        ctx.globalAlpha = particle.alpha;
-        ctx.beginPath();
-        ctx.arc(particle.x, particle.y, particle.radius, 0, 2 * Math.PI);
-        ctx.fillStyle = particle.color;
-        ctx.fill();
-        ctx.restore();
-      });
-
-      if (particles.length > 0) {
-        requestAnimationFrame(animate);
-      } else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-    }
-
-    animate();
-    
-    setTimeout(() => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }, CONFIG.ANIMATION_DURATION);
-  }
 }
 
 // Clean up listeners on page unload
@@ -3985,14 +3910,6 @@ window.addEventListener('beforeunload', async () => {
   stopLeaderboardPolling();
   if (countdownInterval) {
     clearInterval(countdownInterval);
-  }
-});
-
-window.addEventListener('resize', () => {
-  const canvas = document.getElementById('fireworks');
-  if (canvas) {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
   }
 });
 
@@ -4149,8 +4066,6 @@ console.log(`
         ].forEach(l => echo(l, 'ok'));
         if (already){ echo('(you had already unlocked this)', 'dim'); return; }
         try { localStorage.setItem(secretKey, new Date().toISOString()); } catch(e){}
-        gameInstance?.launchFireworks();
-        setTimeout(() => gameInstance?.launchFireworks(), 600);
         await unlockAchievement('secret_unlocked', currentUser.id, currentUser.name, currentUser.team);
         try {
           await db.collection('userProgress').doc(currentUser.id).set({
