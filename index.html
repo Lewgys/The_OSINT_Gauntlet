@@ -1618,6 +1618,8 @@ body{ max-width:none!important; margin:0!important; display:block!important;
   color:var(--text)!important; font-family:var(--mono)!important; font-size:1.35rem!important;
   caret-color:var(--accent); text-shadow:0 0 6px var(--glow); padding:0!important; }
 .cmd-input::placeholder{ color:var(--muted); }
+.term-dock.locked .term-cmd, .term-dock.locked .term-out{ opacity:.45; }
+.term-dock.locked .cmd-input{ cursor:not-allowed; }
 .term-status{ display:flex; align-items:center; font-size:.92rem; background:var(--accent-dim); border-top:1px solid var(--border-2); }
 .st-seg{ padding:.15rem .7rem; color:#041004; background:var(--accent-dim); border-right:1px solid rgba(0,0,0,.35); text-shadow:none; }
 .st-seg.st-prog{ background:var(--accent); color:#031003; font-weight:700; }
@@ -4085,7 +4087,7 @@ console.log(`
   };
 
   function run(line){
-    if (!line.trim()) return;
+    if (input.disabled || !line.trim()) return;
     const parts = line.trim().split(/\s+/);
     const cmd = (parts.shift()||'').toLowerCase();
     echo('operative@gauntlet:~$ '+line, 'cmd');
@@ -4108,6 +4110,20 @@ console.log(`
     const u=document.getElementById('stUser');
     if (currentUser && u){ u.textContent=(currentUser.name||'operative'); }
   }, 1500);
+  // Terminal stays locked until the player has registered their name.
+  const loginModal = document.getElementById('loginModal');
+  const UNLOCKED_PLACEHOLDER = input ? input.placeholder : '';
+  function syncTerminalLock(){
+    if (!input) return;
+    const locked = !currentUser || !!loginModal?.classList.contains('active');
+    document.getElementById('termDock')?.classList.toggle('locked', locked);
+    input.disabled = locked;
+    input.placeholder = locked ? 'register your name to unlock' : UNLOCKED_PLACEHOLDER;
+    if (locked) input.blur();
+  }
+  if (loginModal) new MutationObserver(syncTerminalLock).observe(loginModal, { attributes: true, attributeFilter: ['class'] });
+  syncTerminalLock();
+
   // Size the panes to the space actually left between the header and the dock.
   const dock = document.getElementById('termDock');
   function fitLayout(){
