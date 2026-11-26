@@ -1699,8 +1699,7 @@ body{ max-width:none!important; margin:0!important; display:block!important;
 .pane__title{ flex:0 0 auto; }
 .pane--tasks .task-list{ overflow-y:auto; flex:1 1 auto; }
 .detail-body{ overflow-y:auto; flex:1 1 auto; }
-/* name-only: hide the leaderboard Team column (3rd) + any team field */
-.leaderboard-table th:nth-child(3), .leaderboard-table td:nth-child(3){ display:none!important; }
+/* name-only: hide any team field */
 #teamFieldContainer{ display:none!important; }
 </style>
 </head>
@@ -2047,10 +2046,9 @@ let gameInstance = null; // Store the game instance globally
 let leaderboardViewCount = loadLeaderboardViewCount(); // Track leaderboard views
 
 
-// Real-time leaderboard variables
-let leaderboardListener = null;
-let leaderboardData = new Map();
-let isLeaderboardInitialized = false;
+// Leaderboard state
+let leaderboardPoll = null;
+let leaderboardData = [];
 
 // Lobby System
 let lobbySystem = null;
@@ -3122,149 +3120,81 @@ async function updateUserProgress(userId, taskId, completed, hints, attempts) {
   }
 }
 
-// NEW REAL-TIME LEADERBOARD FUNCTIONS
-function initializeLeaderboard() {
-  if (isLeaderboardInitialized) return;
-  isLeaderboardInitialized = true;
-  
-  console.log('Initializing real-time leaderboard...');
-  
-  // Listen to user progress changes only
-  leaderboardListener = db.collection('userProgress')
-    .onSnapshot((snapshot) => {
-      snapshot.docChanges().forEach((change) => {
-        const userId = change.doc.id;
-        const data = change.doc.data();
-        
-        if (change.type === 'added' || change.type === 'modified') {
-          // Update our local data
-          if (!leaderboardData.has(userId)) {
-            // Need to fetch user info once
-            db.collection('users').doc(userId).get().then(userDoc => {
-              if (userDoc.exists) {
-                const userData = userDoc.data();
-                leaderboardData.set(userId, {
-                  id: userId,
-                  name: userData.name,
-                  team: userData.team || 'Solo',
-                  completedTasks: (data.completedTasks || []).length,
-                  totalHints: data.totalHints || 0,
-                  startTime: userData.startTime
-                });
-                updateLeaderboardDisplay();
-              }
-            });
-          } else {
-            // Just update progress data
-            const existing = leaderboardData.get(userId);
-            existing.completedTasks = (data.completedTasks || []).length;
-            existing.totalHints = data.totalHints || 0;
-            updateLeaderboardDisplay();
-          }
-        }
-      });
-    });
-  
-  // Initial load of all users (one-time cost)
-  loadInitialLeaderboardData();
-}
+// Leaderboard: built by the Worker from server-verified solves only.
+const LEADERBOARD_POLL_MS = 30000;
 
-async function loadInitialLeaderboardData() {
+async function refreshLeaderboard() {
+  const dashboardModal = document.getElementById('dashboardModal');
+  if (!dashboardModal.classList.contains('active')) return;
   try {
-    // Load all users once
-    const users = await db.collection('users').get();
-    const userProgress = await db.collection('userProgress').get();
-    
-    // Build progress map
-    const progressMap = new Map();
-    userProgress.forEach(doc => {
-      progressMap.set(doc.id, doc.data());
+    const response = await fetch(CONFIG.API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'leaderboard', userId: currentUser?.id || '' })
     });
-    
-    // Populate leaderboard data
-    users.forEach(doc => {
-      const userData = doc.data();
-      const progress = progressMap.get(doc.id) || {};
-      
-      leaderboardData.set(doc.id, {
-        id: doc.id,
-        name: userData.name,
-        team: userData.team || 'Solo',
-        completedTasks: (progress.completedTasks || []).length,
-        totalHints: progress.totalHints || 0,
-        startTime: userData.startTime
-      });
-    });
-    
-    updateLeaderboardDisplay();
+    if (!response.ok) throw new Error('leaderboard ' + response.status);
+    const { rows } = await response.json();
+    renderLeaderboard(rows || []);
   } catch (error) {
-    console.error('Error loading initial data:', error);
+    console.error('Error loading leaderboard:', error);
+    if (!leaderboardData.length) {
+      document.getElementById('leaderboardContent').innerHTML =
+        '<p style="text-align: center; color: #999;">Could not load the leaderboard. Retrying...</p>';
+    }
   }
 }
 
-function updateLeaderboardDisplay() {
-  // Only update if modal is open
-  const dashboardModal = document.getElementById('dashboardModal');
-  if (!dashboardModal.classList.contains('active')) return;
-  
-  // Convert map to sorted array
-  const sortedLeaderboard = Array.from(leaderboardData.values()).sort((a, b) => {
-    if (b.completedTasks !== a.completedTasks) {
-      return b.completedTasks - a.completedTasks;
-    }
-    return a.totalHints - b.totalHints;
-  });
-  
-  // Update DOM
-  const leaderboardContent = document.getElementById('leaderboardContent');
+function renderLeaderboard(rows) {
+  leaderboardData = rows;
   const currentUserHasUnlockedTask6 = currentUser && gameInstance && gameInstance.completedTasks['task5'];
   const displayTotal = currentUserHasUnlockedTask6 ? 6 : 5;
-  
+
   let html = `
     <div style="text-align: right; margin-bottom: 1rem; color: #666;">
-      🔴 Live Updates Enabled
+      Verified solves only · refreshes every 30s
     </div>
     <table class="leaderboard-table">
       <thead>
         <tr>
           <th>Rank</th>
           <th>Name</th>
-          <th>Team</th>
           <th>Tasks Completed</th>
+          <th>Secret</th>
           <th>Hints Used</th>
         </tr>
       </thead>
       <tbody>
   `;
-  
-  sortedLeaderboard.forEach((user, index) => {
-    const isCurrentUser = currentUser && user.id === currentUser.id;
-    const displayedCompleted = Math.min(user.completedTasks, displayTotal);
-    
+
+  if (!rows.length) {
+    html += '<tr><td colspan="5" style="text-align: center;">No verified solves yet</td></tr>';
+  }
+
+  rows.forEach((row) => {
     html += `
-      <tr${isCurrentUser ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
-        <td>${index + 1}</td>
-        <td>${escapeHtml(user.name)}${isCurrentUser ? ' (You)' : ''}</td>
-        <td>${escapeHtml(user.team)}</td>
-        <td>${displayedCompleted}/${displayTotal}</td>
-        <td>${user.totalHints}</td>
+      <tr${row.you ? ' style="background: rgba(176, 211, 81, 0.1);"' : ''}>
+        <td>${Number(row.rank)}</td>
+        <td>${escapeHtml(row.name)}${row.you ? ' (You)' : ''}</td>
+        <td>${Math.min(Number(row.tasks), displayTotal)}/${displayTotal}</td>
+        <td>${row.secret ? '🗝️' : '-'}</td>
+        <td>${Number(row.hints)}</td>
       </tr>
     `;
   });
-  
+
   html += '</tbody></table>';
-  leaderboardContent.innerHTML = html;
+  document.getElementById('leaderboardContent').innerHTML = html;
 }
 
-// REPLACED OLD loadLeaderboard function with real-time version
-async function loadLeaderboard() {
-  // This function is kept for compatibility but now just returns the real-time data
-  return Array.from(leaderboardData.values()).sort((a, b) => {
-    if (b.completedTasks !== a.completedTasks) {
-      return b.completedTasks - a.completedTasks;
-    }
-    return a.totalHints - b.totalHints;
-  });
+function startLeaderboardPolling() {
+  refreshLeaderboard();
+  clearInterval(leaderboardPoll);
+  leaderboardPoll = setInterval(refreshLeaderboard, LEADERBOARD_POLL_MS);
+}
+
+function stopLeaderboardPolling() {
+  clearInterval(leaderboardPoll);
+  leaderboardPoll = null;
 }
 
 function setupTeamSelection() {
@@ -3457,17 +3387,12 @@ document.addEventListener('DOMContentLoaded', async () => {
    checkAchievements('leaderboard_viewed');
    saveLeaderboardViewCount();
    
-    // Initialize listener on first open
-    if (!isLeaderboardInitialized) {
-      initializeLeaderboard();
-    } else {
-      // Just update display with existing data
-      updateLeaderboardDisplay();
-    }
+    startLeaderboardPolling();
   });
   
   closeDashboard.addEventListener('click', () => {
     dashboardModal.classList.remove('active');
+    stopLeaderboardPolling();
   });
   
   // Briefing functionality
@@ -3511,6 +3436,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       closeBriefing();
       if (dashboardModal.classList.contains('active')) {
         dashboardModal.classList.remove('active');
+        stopLeaderboardPolling();
       }
       // Also close countdown briefing modal
       const countdownBriefingModal = document.getElementById('countdownBriefingModal');
@@ -3861,6 +3787,11 @@ async handleSubmit(task, feedbackP, submitBtn) {
       return;
     }
 
+    if (response.status === 429) {
+      this.showFeedback(feedbackP, 'Too many attempts. Wait a minute and try again.', 'error');
+      return;
+    }
+
     if (!response.ok) {
       throw new Error('Validation failed');
     }
@@ -4051,9 +3982,7 @@ window.addEventListener('beforeunload', async () => {
   if (lobbySystem) {
     await lobbySystem.cleanup();
   }
-  if (leaderboardListener) {
-    leaderboardListener();
-  }
+  stopLeaderboardPolling();
   if (countdownInterval) {
     clearInterval(countdownInterval);
   }
@@ -4203,6 +4132,7 @@ console.log(`
           })
         });
         if (res.status === 403){ echo('challenge has not started yet', 'err'); return; }
+        if (res.status === 429){ echo('too many attempts, wait a minute and try again', 'err'); return; }
         if (!res.ok) throw new Error('verification failed');
         const { correct } = await res.json();
         if (!correct){
